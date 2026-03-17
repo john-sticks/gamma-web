@@ -14,11 +14,11 @@ COPY . .
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
     NODE_ENV=production \
-    PORT=3001 \
+    PORT=3000 \
     TZ=America/Argentina/Buenos_Aires
 
 RUN npm run build
 
-EXPOSE 3001
+EXPOSE 3000
 
 CMD ["npm", "run", "start"]
