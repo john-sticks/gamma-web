@@ -33,12 +33,14 @@ export async function GET(request: NextRequest) {
     const page = searchParams.get('page') || '1';
     const limit = searchParams.get('limit') || '10';
     const search = searchParams.get('search') || '';
+    const role = searchParams.get('role') || '';
 
     // Build query string
     const queryString = new URLSearchParams({
       page,
       limit,
       ...(search && { search }),
+      ...(role && { role }),
     }).toString();
 
     const response = await fetch(`${API_BASE_URL}/users?${queryString}`, {
