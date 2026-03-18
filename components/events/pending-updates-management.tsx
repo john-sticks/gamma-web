@@ -35,7 +35,7 @@ import {
 import { Pagination } from '@/components/ui/pagination';
 import { toast } from 'sonner';
 import type { EventUpdateWithEvent, EventUpdate } from '@/types/events';
-import { UPDATE_TYPE_LABELS } from '@/types/events';
+import { UPDATE_TYPE_LABELS, EVENT_TYPE_LABELS, EVENT_LIFECYCLE_STATUS_LABELS } from '@/types/events';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -281,8 +281,10 @@ export function PendingUpdatesManagement() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Evento</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Fecha/Hora</TableHead>
+                      <TableHead>Ciudad / Localidad</TableHead>
+                      <TableHead>Fecha evento</TableHead>
+                      <TableHead>Tipo panorama</TableHead>
+                      <TableHead>Hora panorama</TableHead>
                       <TableHead>Asistentes</TableHead>
                       <TableHead>Creador</TableHead>
                       <TableHead className="text-right">Acciones</TableHead>
@@ -302,12 +304,23 @@ export function PendingUpdatesManagement() {
                             {update.event?.title || 'Evento desconocido'}
                           </TableCell>
                           <TableCell>
+                            <div className="text-sm">
+                              <p className="font-medium">{update.event?.city?.name || '-'}</p>
+                              <p className="text-muted-foreground text-xs">{update.event?.locality?.name || 'Sin localidad'}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {update.event?.eventDate
+                              ? format(new Date(update.event.eventDate), 'dd/MM/yyyy HH:mm', { locale: es })
+                              : '-'}
+                          </TableCell>
+                          <TableCell>
                             <Badge variant={getUpdateTypeBadgeVariant(update.updateType)}>
                               {UPDATE_TYPE_LABELS[update.updateType]}
                             </Badge>
                           </TableCell>
-                          <TableCell>
-                            {format(new Date(update.updateTime), 'dd/MM/yyyy HH:mm', { locale: es })}
+                          <TableCell className="text-sm">
+                            {format(new Date(update.updateTime), 'HH:mm', { locale: es })}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
@@ -381,9 +394,43 @@ export function PendingUpdatesManagement() {
           {selectedUpdate && editForm && (
             <div className="space-y-4">
               {/* Event info (read-only) */}
-              <div className="p-3 bg-muted/50 rounded-lg">
-                <h4 className="font-semibold mb-1">Evento</h4>
-                <p className="text-sm">{selectedUpdate.event?.title || 'Evento desconocido'}</p>
+              <div className="p-3 bg-muted/50 rounded-lg space-y-2">
+                <h4 className="font-semibold">Evento</h4>
+                <p className="text-sm font-medium">{selectedUpdate.event?.title || 'Evento desconocido'}</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Tipo: </span>
+                    <span className="font-medium">
+                      {selectedUpdate.event?.eventType ? EVENT_TYPE_LABELS[selectedUpdate.event.eventType] : '-'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Estado: </span>
+                    <span className="font-medium">
+                      {selectedUpdate.event?.lifecycleStatus ? EVENT_LIFECYCLE_STATUS_LABELS[selectedUpdate.event.lifecycleStatus] : '-'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Ciudad: </span>
+                    <span className="font-medium">{selectedUpdate.event?.city?.name || '-'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Localidad: </span>
+                    <span className="font-medium">{selectedUpdate.event?.locality?.name || 'Sin localidad'}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-muted-foreground">Dirección: </span>
+                    <span className="font-medium">{selectedUpdate.event?.address || '-'}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-muted-foreground">Fecha del evento: </span>
+                    <span className="font-medium">
+                      {selectedUpdate.event?.eventDate
+                        ? format(new Date(selectedUpdate.event.eventDate), "dd/MM/yyyy 'a las' HH:mm", { locale: es })
+                        : '-'}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               {/* Editable fields */}

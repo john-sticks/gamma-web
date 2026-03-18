@@ -133,7 +133,7 @@ function getDashboardRoute(role: string): string {
     level_2: '/dashboard/admin/events/map',
     level_3: '/dashboard/moderator',
     level_4: '/dashboard/user',
-    level_5: '/dashboard/readonly',
+    level_5: '/dashboard/readonly/events/map',
   };
 
   return dashboardRoutes[role] || '/dashboard/user';

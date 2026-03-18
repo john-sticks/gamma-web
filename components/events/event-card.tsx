@@ -14,11 +14,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { Event } from '@/types/events';
-import { EVENT_TYPE_LABELS, EVENT_STATUS_LABELS } from '@/types/events';
+import { EVENT_TYPE_LABELS, EVENT_LIFECYCLE_STATUS_LABELS } from '@/types/events';
 import Link from 'next/link';
 
 interface EventCardProps {
   event: Event;
+  onView?: (event: Event) => void;
   onEdit?: (event: Event) => void;
   onDelete?: (event: Event) => void;
   onApprove?: (event: Event) => void;
@@ -35,6 +36,7 @@ interface EventCardProps {
 
 export function EventCard({
   event,
+  onView,
   onEdit,
   onDelete,
   onApprove,
@@ -44,10 +46,10 @@ export function EventCard({
 }: EventCardProps) {
   const [showDescriptionModal, setShowDescriptionModal] = useState(false);
 
-  function getStatusBadgeVariant(status: Event['status']): 'default' | 'secondary' | 'outline' | 'destructive' {
-    if (status === 'approved') return 'default';
-    if (status === 'pending') return 'secondary';
-    if (status === 'rejected' || status === 'cancelled') return 'destructive';
+  function getLifecycleBadgeVariant(status: Event['lifecycleStatus']): 'default' | 'secondary' | 'outline' | 'destructive' {
+    if (status === 'ongoing') return 'default';
+    if (status === 'pending' || status === 'awaiting_start') return 'secondary';
+    if (status === 'completed' || status === 'cancelled' || status === 'pending_cancellation') return 'destructive';
     return 'outline';
   }
 
@@ -78,16 +80,18 @@ export function EventCard({
         <CardHeader className={`pb-3 ${getEventTypeColor(event.eventType)} border-b`}>
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
-              <CardTitle className="text-lg line-clamp-2">{event.title}</CardTitle>
+              <CardTitle className={`text-lg line-clamp-2 ${event.lifecycleStatus === 'completed' || event.lifecycleStatus === 'cancelled' ? 'line-through opacity-60' : ''}`}>{event.title}</CardTitle>
               <CardDescription className="mt-1.5 flex items-center gap-2">
                 <Badge variant="outline" className="border-current/20 bg-background/50">
                   {EVENT_TYPE_LABELS[event.eventType]}
                 </Badge>
               </CardDescription>
             </div>
-            <Badge variant={getStatusBadgeVariant(event.status)}>
-              {EVENT_STATUS_LABELS[event.status]}
-            </Badge>
+            {event.lifecycleStatus && (
+              <Badge variant={getLifecycleBadgeVariant(event.lifecycleStatus)}>
+                {EVENT_LIFECYCLE_STATUS_LABELS[event.lifecycleStatus]}
+              </Badge>
+            )}
           </div>
         </CardHeader>
 
@@ -151,12 +155,19 @@ export function EventCard({
 
         <CardFooter className="pt-3 border-t bg-muted/30 flex flex-wrap gap-2 mt-auto">
         {showActions?.view && (
-          <Button variant="outline" size="sm" asChild>
-            <Link href={`/dashboard/user/events/${event.id}`}>
+          onView ? (
+            <Button variant="outline" size="sm" onClick={() => onView(event)}>
               <Eye className="h-4 w-4 mr-1.5" />
               Ver Detalle
-            </Link>
-          </Button>
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/dashboard/user/events/${event.id}`}>
+                <Eye className="h-4 w-4 mr-1.5" />
+                Ver Detalle
+              </Link>
+            </Button>
+          )
         )}
 
         {showActions?.edit && (

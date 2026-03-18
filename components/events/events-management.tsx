@@ -39,7 +39,7 @@ import type { City } from '@/types/city';
 import { EVENT_TYPE_LABELS, EVENT_STATUS_LABELS, EVENT_LIFECYCLE_STATUS_LABELS, UPDATE_TYPE_LABELS } from '@/types/events';
 import Link from 'next/link';
 import { WhatsAppShareButton } from '@/components/events/whatsapp-share-button';
-import { ExportButtons } from '@/components/events/export-buttons';
+//import { ExportButtons } from '@/components/events/export-buttons';
 
 interface PaginatedResponse<T> {
   data: T[];
@@ -56,9 +56,10 @@ interface PaginatedResponse<T> {
 interface EventsManagementProps {
   basePath: string; // e.g., '/dashboard/admin' or '/dashboard/super-admin'
   defaultFilterStatus?: string; // Default status filter (e.g., 'approved', 'pending', 'all')
+  readonly?: boolean; // Hide create/edit/delete actions
 }
 
-export function EventsManagement({ basePath, defaultFilterStatus = 'all' }: EventsManagementProps) {
+export function EventsManagement({ basePath, defaultFilterStatus = 'all', readonly = false }: EventsManagementProps) {
   const queryClient = useQueryClient();
   const cityDropdownRef = useRef<HTMLDivElement>(null);
   const [expandedTitles, setExpandedTitles] = useState<Set<string>>(new Set());
@@ -356,7 +357,7 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all' }: Even
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <ExportButtons
+            {/* <ExportButtons
               filters={{
                 ...(filterType !== 'all' ? { eventType: filterType } : {}),
                 ...(filterStatus !== 'all' ? { status: filterStatus } : {}),
@@ -366,7 +367,7 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all' }: Even
                 ...(dateTo ? { dateTo } : {}),
                 ...(debouncedSearch ? { search: debouncedSearch } : {}),
               }}
-            />
+            /> */}
             <Button asChild variant="outline" size="sm" className="flex-1 sm:flex-none">
               <Link href={`${basePath}/events/presentation`}>
                 <Presentation className="mr-2 h-4 w-4" />
@@ -380,12 +381,14 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all' }: Even
                 Mapa
               </Link>
             </Button>
-            <Button asChild size="sm" className="flex-1 sm:flex-none">
-              <Link href={`${basePath}/events/create`}>
-                <Plus className="mr-2 h-4 w-4" />
-                Crear
-              </Link>
-            </Button>
+            {!readonly && (
+              <Button asChild size="sm" className="flex-1 sm:flex-none">
+                <Link href={`${basePath}/events/create`}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Crear
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -642,6 +645,10 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all' }: Even
                     key={event.id}
                     event={event}
                     editPath={`${basePath}/events/edit/${event.id}`}
+                    onView={(event) => {
+                      setSelectedEvent(event);
+                      setViewDialogOpen(true);
+                    }}
                     onDelete={() => {
                       setSelectedEvent(event);
                       setDeleteDialogOpen(true);
@@ -656,10 +663,10 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all' }: Even
                     }}
                     showActions={{
                       view: true,
-                      edit: true,
-                      delete: true,
-                      approve: event.status === 'pending',
-                      reject: event.status === 'pending',
+                      edit: !readonly,
+                      delete: !readonly,
+                      approve: !readonly && event.status === 'pending',
+                      reject: !readonly && event.status === 'pending',
                     }}
                   />
                 ))}
@@ -732,13 +739,11 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all' }: Even
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="max-w-[200px] truncate">
-                        {event.city?.name || 'Sin ciudad'}
-                        {event.locality && (
-                          <span className="text-xs text-muted-foreground block">
-                            {event.locality.name}
-                          </span>
-                        )}
+                      <TableCell className="max-w-[200px]">
+                        <p className="font-medium truncate">{event.city?.name || 'Sin ciudad'}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {event.locality?.name || 'Sin localidad'}
+                        </p>
                       </TableCell>
                       <TableCell>
                         {event.status === 'approved' && event.lifecycleStatus ? (
@@ -835,27 +840,31 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all' }: Even
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            asChild
-                            className='hover:cursor-pointer'
-                          >
-                            <Link href={`${basePath}/events/edit/${event.id}`}>
-                              <Pencil className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className='hover:cursor-pointer'
-                            onClick={() => {
-                              setSelectedEvent(event);
-                              setDeleteDialogOpen(true);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {!readonly && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                asChild
+                                className='hover:cursor-pointer'
+                              >
+                                <Link href={`${basePath}/events/edit/${event.id}`}>
+                                  <Pencil className="h-4 w-4" />
+                                </Link>
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className='hover:cursor-pointer'
+                                onClick={() => {
+                                  setSelectedEvent(event);
+                                  setDeleteDialogOpen(true);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -1040,9 +1049,9 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all' }: Even
             </div>
           )}
           <DialogFooter>
-            {selectedEvent && (
+            {/* {selectedEvent && (
               <ExportButtons eventId={selectedEvent.id} />
-            )}
+            )} */}
             <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
               Cerrar
             </Button>

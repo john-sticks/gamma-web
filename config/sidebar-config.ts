@@ -2,7 +2,6 @@ import {
   LayoutDashboard,
   Users,
   // Activity,
-  Eye,
   MapPin,
   Calendar,
   PlusCircle,
@@ -248,16 +247,16 @@ const readOnlyItems: SidebarSection[] = [
     title: 'General',
     items: [
       {
-        title: 'Dashboard',
-        href: '/dashboard/readonly',
-        icon: LayoutDashboard,
-        description: 'Vista general',
+        title: 'Mapa de Eventos',
+        href: '/dashboard/readonly/events/map',
+        icon: MapPin,
+        description: 'Visualizar eventos en mapa',
       },
       {
-        title: 'Reportes',
-        href: '/dashboard/readonly/reports',
-        icon: Eye,
-        description: 'Ver reportes',
+        title: 'Eventos',
+        href: '/dashboard/readonly/events',
+        icon: Calendar,
+        description: 'Ver eventos',
       },
       {
         title: 'Notificaciones',
