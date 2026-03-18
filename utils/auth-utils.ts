@@ -41,7 +41,7 @@ export function getDashboardRoute(role: UserRole): string {
     level_2: '/dashboard/admin',
     level_3: '/dashboard/moderator',
     level_4: '/dashboard/user',
-    level_5: '/dashboard/readonly',
+    level_5: '/dashboard/readonly/events/map',
   };
 
   return dashboardRoutes[role] || '/dashboard/user';

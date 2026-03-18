@@ -472,7 +472,7 @@ export function UsersManagement() {
                   <SelectItem value="level_2">Admin</SelectItem>
                   <SelectItem value="level_3">Moderador</SelectItem>
                   <SelectItem value="level_4">Delegación</SelectItem>
-                  <SelectItem value="level_5" disabled>Solo lectura</SelectItem>
+                  <SelectItem value="level_5">Solo lectura</SelectItem>
                 </SelectContent>
               </Select>
             </div>
