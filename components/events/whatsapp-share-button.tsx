@@ -39,7 +39,19 @@ export function WhatsAppShareButton({
   async function handleCopy() {
     const message = generateWhatsAppMessage(event, updates, latestUpdate);
     try {
-      await navigator.clipboard.writeText(message);
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(message);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = message;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
       setCopied(true);
       toast.success('Mensaje copiado al portapapeles');
       setTimeout(() => setCopied(false), 2000);
