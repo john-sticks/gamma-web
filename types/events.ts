@@ -14,7 +14,7 @@ export interface EventUpdate {
   id: string;
   eventId: string;
   updateTime: string;
-  updateType: 'attendance_update' | 'police_arrival' | 'police_departure' | 'street_closure' | 'street_reopened' | 'general_update' | 'incident' | 'event_start' | 'event_end' | 'event_created';
+  updateType: 'attendance_update' | 'police_arrival' | 'police_departure' | 'street_closure' | 'street_reopened' | 'general_update' | 'incident' | 'event_start' | 'event_end' | 'event_created' | 'location_update';
   attendeeCount: number;
   policePresence: boolean;
   streetClosure: boolean;
@@ -164,4 +164,5 @@ export const UPDATE_TYPE_LABELS: Record<EventUpdate['updateType'], string> = {
   event_start: 'Inicio del evento',
   event_end: 'Fin del evento',
   event_created: 'Evento creado',
+  location_update: 'Actualización de posición',
 };

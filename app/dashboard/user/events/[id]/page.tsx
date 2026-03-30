@@ -244,6 +244,7 @@ export default function EventDetailPage() {
               onRefresh={() => refetchUpdates()}
               eventId={event.id}
               userRole="level_4"
+              cityName={event.city.name}
             />
           </TabsContent>
 

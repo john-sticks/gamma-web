@@ -1,8 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
-import { Clock, Users, Shield, MessageSquare, TrendingUp, Pencil } from 'lucide-react';
+import { Clock, Users, Shield, MessageSquare, TrendingUp, Pencil, AlertTriangle } from 'lucide-react';
+import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
+import { point } from '@turf/helpers';
+import type { Feature, FeatureCollection, Polygon, MultiPolygon } from 'geojson';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +21,7 @@ import { toast } from 'sonner';
 interface EventTimelineProps {
   updates: EventUpdate[];
   eventId: string;
+  cityName?: string;
   onAddUpdate?: (update: CreateEventUpdateDto) => void;
   onUpdateEdited?: () => void;
   canEdit?: boolean;
@@ -35,6 +39,7 @@ function isWithin15Minutes(createdAt: string): boolean {
 export function EventTimeline({
   updates,
   eventId,
+  cityName,
   onAddUpdate,
   onUpdateEdited,
   canEdit = false,
@@ -51,11 +56,94 @@ export function EventTimeline({
     policePresence: false,
     streetClosure: false,
   });
+  const [coordsInput, setCoordsInput] = useState('');
+  const [coordsError, setCoordsError] = useState('');
+  const [coordsWarning, setCoordsWarning] = useState('');
+  const geoJsonRef = useRef<FeatureCollection<Polygon | MultiPolygon> | null>(null);
+
+  const NAME_EXCEPTIONS: Record<string, string> = {
+    'CORONEL ROSALES': 'CORONEL DE MARINA LEONARDO ROSALES',
+    'JOSE C. PAZ': 'JOSE C PAZ',
+    'LEANDRO N. ALEM': 'LEANDRO N ALEM',
+    'NUEVE DE JULIO': '9 DE JULIO',
+    'VEINTICINCO DE MAYO': '25 DE MAYO',
+  };
+
+  useEffect(() => {
+    fetch('/buenos-aires-partidos.json')
+      .then((res) => res.json())
+      .then((data: FeatureCollection<Polygon | MultiPolygon>) => {
+        geoJsonRef.current = data;
+      })
+      .catch(() => {});
+  }, []);
+
+  function validateCoordsInPartido(lat: number, lng: number) {
+    if (!geoJsonRef.current || !cityName) {
+      setCoordsWarning('');
+      return;
+    }
+    const upperName = cityName.toUpperCase().trim();
+    const normalizedName = NAME_EXCEPTIONS[upperName] || upperName;
+    const feature = geoJsonRef.current.features.find(
+      (f) => (f.properties?.departamento || '').toUpperCase().trim() === normalizedName,
+    );
+    if (!feature) {
+      setCoordsWarning('');
+      return;
+    }
+    const pt = point([lng, lat]);
+    const inside = booleanPointInPolygon(pt, feature as Feature<Polygon | MultiPolygon>);
+    if (!inside) {
+      setCoordsWarning(
+        `Las coordenadas no parecen estar dentro de "${cityName}". Verificá que sean correctas.`,
+      );
+    } else {
+      setCoordsWarning('');
+    }
+  }
+
+  function parseCoordinates(value: string): { latitude: number; longitude: number } | null {
+    const cleaned = value.trim();
+    if (!cleaned) return null;
+    const parts = cleaned.split(',');
+    if (parts.length !== 2) return null;
+    const lat = parseFloat(parts[0].trim());
+    const lng = parseFloat(parts[1].trim());
+    if (isNaN(lat) || isNaN(lng)) return null;
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+    return { latitude: lat, longitude: lng };
+  }
+
+  function handleCoordsChange(value: string) {
+    setCoordsInput(value);
+    setCoordsError('');
+    setCoordsWarning('');
+    const parsed = parseCoordinates(value);
+    if (parsed) {
+      setNewUpdate((prev) => ({ ...prev, latitude: parsed.latitude, longitude: parsed.longitude }));
+      validateCoordsInPartido(parsed.latitude, parsed.longitude);
+    } else {
+      setNewUpdate((prev) => ({ ...prev, latitude: undefined, longitude: undefined }));
+    }
+  }
 
   const handleSubmitUpdate = () => {
     if (!newUpdate.updateTime) {
       toast.error('Debes ingresar la fecha y hora de la actualización');
       return;
+    }
+
+    if (newUpdate.updateType === 'location_update') {
+      const parsed = parseCoordinates(coordsInput);
+      if (!parsed) {
+        setCoordsError('Formato inválido. Pegá las coordenadas así: -34.9215, -57.9543');
+        return;
+      }
+      if (coordsWarning) {
+        setCoordsError(`Las coordenadas no corresponden a "${cityName}". Corregílas antes de continuar.`);
+        return;
+      }
     }
 
     if (newUpdate.attendeeCount === undefined || newUpdate.attendeeCount === null) {
@@ -82,6 +170,9 @@ export function EventTimeline({
         policePresence: false,
         streetClosure: false,
       });
+      setCoordsInput('');
+      setCoordsError('');
+      setCoordsWarning('');
       setAddDialogOpen(false);
     }
   };
@@ -409,6 +500,34 @@ export function EventTimeline({
                   </label>
                 </div>
               </div>
+
+              {newUpdate.updateType === 'location_update' && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Coordenadas *</label>
+                  <Input
+                    value={coordsInput}
+                    onChange={(e) => handleCoordsChange(e.target.value)}
+                    placeholder="Ej: -34.9215, -57.9543"
+                    className={coordsError ? 'border-destructive' : ''}
+                  />
+                  {coordsError && (
+                    <p className="text-sm text-destructive">{coordsError}</p>
+                  )}
+                  {coordsWarning && !coordsError && (
+                    <div className="flex items-center gap-2 text-sm text-amber-600">
+                      <AlertTriangle className="h-4 w-4 shrink-0" />
+                      <span>{coordsWarning}</span>
+                    </div>
+                  )}
+                  <p className="text-sm text-muted-foreground">
+                    Copiá las coordenadas de{' '}
+                    <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer" className="underline">
+                      Google Maps
+                    </a>
+                    {' '}(clic derecho en el mapa) y pegalas directamente acá.
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label className="text-sm font-medium">Observaciones</label>

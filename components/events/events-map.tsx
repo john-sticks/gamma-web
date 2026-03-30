@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, GeoJSON, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, GeoJSON, Polyline, useMap } from 'react-leaflet';
 import { Icon } from 'leaflet';
 import type { PathOptions } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -9,13 +9,22 @@ import 'leaflet/dist/leaflet.css';
 import type { Event } from '@/types/events';
 import { EVENT_TYPE_LABELS, EVENT_LIFECYCLE_STATUS_LABELS } from '@/types/events';
 
+interface RoutePoint {
+  latitude: number;
+  longitude: number;
+  updateTime: string;
+}
+
 export interface MapEvent extends Event {
   latestUpdate?: {
     attendeeCount: number;
     policePresence: boolean;
     streetClosure: boolean;
     updateTime: string;
+    latitude?: number | null;
+    longitude?: number | null;
   } | null;
+  route?: RoutePoint[];
 }
 
 interface EventsMapProps {
@@ -59,6 +68,37 @@ const getEventColor = (eventType: string): string => {
     otro: '#6366f1', // Indigo
   };
   return colors[eventType] || colors.otro;
+};
+
+// Icono de inicio de marcha: pin hueco con borde del color
+const createStartIcon = (color: string) => {
+  return new Icon({
+    iconUrl: `data:image/svg+xml;base64,${btoa(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="25" height="41" viewBox="0 0 25 41">
+        <path fill="white" stroke="${color}" stroke-width="2.5" d="M12.5 1C6.1 1 1 6.1 1 12.5c0 8.4 11.5 27 11.5 27S24 20.9 24 12.5C24 6.1 18.9 1 12.5 1z"/>
+        <circle fill="${color}" cx="12.5" cy="12.5" r="4"/>
+      </svg>
+    `)}`,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+  });
+};
+
+// Icono de posición actual de la marcha: pin con pulso visual
+const createCurrentPositionIcon = (color: string) => {
+  return new Icon({
+    iconUrl: `data:image/svg+xml;base64,${btoa(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="48" viewBox="0 0 32 48">
+        <path fill="${color}" d="M16 0C9.4 0 4 5.4 4 12c0 9.4 12 36 12 36S28 21.4 28 12C28 5.4 22.6 0 16 0z"/>
+        <circle fill="white" cx="16" cy="12" r="7"/>
+        <circle fill="${color}" cx="16" cy="12" r="4"/>
+      </svg>
+    `)}`,
+    iconSize: [32, 48],
+    iconAnchor: [16, 48],
+    popupAnchor: [1, -40],
+  });
 };
 
 // Centro de la provincia de Buenos Aires
@@ -122,15 +162,27 @@ export function EventsMap({ events, center = BUENOS_AIRES_CENTER, zoom = BUENOS_
         />
       )}
 
-      {events.map((event) => (
-        <Marker
-          key={event.id}
-          position={[event.latitude, event.longitude]}
-          icon={createCustomIcon(getEventColor(event.eventType))}
-        >
+      {events.map((event) => {
+        const color = getEventColor(event.eventType);
+        const isMarch = event.eventType === 'marcha';
+        const route = event.route ?? [];
+        const hasRoute = route.length >= 2;
+
+        // Posición actual: último punto de ruta con coords, o fallback al origen
+        const latestLat = event.latestUpdate?.latitude;
+        const latestLng = event.latestUpdate?.longitude;
+        const currentPos: [number, number] | null =
+          latestLat != null && latestLng != null
+            ? [Number(latestLat), Number(latestLng)]
+            : null;
+
+        const routePositions: [number, number][] = hasRoute
+          ? route.map((p) => [Number(p.latitude), Number(p.longitude)])
+          : [];
+
+        const eventPopup = (
           <Popup maxWidth={350} minWidth={280}>
             <div className="p-3 w-72">
-              {/* Header: status badge + date */}
               <div className="flex items-center justify-between mb-2">
                 <span className={`text-xs font-semibold ${getLifecycleColor(event.lifecycleStatus)}`}>
                   {event.lifecycleStatus
@@ -148,20 +200,16 @@ export function EventsMap({ events, center = BUENOS_AIRES_CENTER, zoom = BUENOS_
                 </span>
               </div>
 
-              {/* Title */}
               <h3 className="font-bold text-base mb-1 leading-tight">{event.title}</h3>
 
-              {/* Type + city */}
               <p className="text-xs text-gray-500 mb-2">
                 {EVENT_TYPE_LABELS[event.eventType]} &middot; {event.city?.name || 'Sin ciudad'}
               </p>
 
-              {/* Description with scroll */}
               <div className="max-h-32 overflow-y-auto mb-3 pr-1">
                 <p className="text-sm text-gray-600">{event.description}</p>
               </div>
 
-              {/* Stats row */}
               <div className="flex items-center gap-3 text-xs border-t pt-2">
                 <div className="flex items-center gap-1">
                   <span>👥</span>
@@ -182,16 +230,48 @@ export function EventsMap({ events, center = BUENOS_AIRES_CENTER, zoom = BUENOS_
                     <span className="text-gray-500">Corte de calle</span>
                   </div>
                 )}
+                {isMarch && route.length > 0 && (
+                  <div className="flex items-center gap-1">
+                    <span>📍</span>
+                    <span className="text-gray-500">{route.length} pos. registradas</span>
+                  </div>
+                )}
               </div>
 
-              {/* Footer */}
               <p className="text-[11px] text-gray-400 mt-2">
                 {event.address} &middot; {event.createdBy.firstName} {event.createdBy.lastName}
               </p>
             </div>
           </Popup>
-        </Marker>
-      ))}
+        );
+
+        return (
+          <span key={event.id}>
+            {/* Marcador de origen — para marchas usa icono de inicio, resto el normal */}
+            <Marker
+              position={[event.latitude, event.longitude]}
+              icon={isMarch ? createStartIcon(color) : createCustomIcon(color)}
+            >
+              {eventPopup}
+            </Marker>
+
+            {/* Ruta recorrida */}
+            {isMarch && hasRoute && (
+              <Polyline
+                positions={routePositions}
+                pathOptions={{ color, weight: 3, opacity: 0.8, dashArray: '6 4' }}
+              />
+            )}
+
+            {/* Marcador de posición actual (solo si se movió del origen) */}
+            {isMarch && currentPos && (
+              <Marker position={currentPos} icon={createCurrentPositionIcon(color)}>
+                {eventPopup}
+              </Marker>
+            )}
+          </span>
+        );
+      })}
     </MapContainer>
   );
 }
