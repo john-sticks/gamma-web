@@ -468,7 +468,6 @@ export function UsersManagement() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="level_1">Super Admin</SelectItem>
                   <SelectItem value="level_2">Admin</SelectItem>
                   <SelectItem value="level_3">Moderador</SelectItem>
                   <SelectItem value="level_4">Delegación</SelectItem>
@@ -625,11 +624,10 @@ export function UsersManagement() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="level_1">Super Admin</SelectItem>
                   <SelectItem value="level_2">Admin</SelectItem>
-                  <SelectItem value="level_3">Moderator</SelectItem>
-                  <SelectItem value="level_4">Standard User</SelectItem>
-                  <SelectItem value="level_5">Read Only</SelectItem>
+                  <SelectItem value="level_3">Moderador</SelectItem>
+                  <SelectItem value="level_4">Delegación</SelectItem>
+                  <SelectItem value="level_5">Solo lectura</SelectItem>
                 </SelectContent>
               </Select>
             </div>

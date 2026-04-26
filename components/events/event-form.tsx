@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import type { Event, CreateEventDto, EventTitle } from '@/types/events';
 import { EVENT_TYPE_LABELS } from '@/types/events';
-import { AlertCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Loader2, Search } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
@@ -36,6 +36,7 @@ export function EventForm({ event, mode }: EventFormProps) {
 
   const [isCustomTitle, setIsCustomTitle] = useState(event?.isCustomTitle ?? true);
   const [selectedTitleId, setSelectedTitleId] = useState(event?.eventTitleId || '');
+  const [titleSearch, setTitleSearch] = useState('');
   const [selectedLocalityId, setSelectedLocalityId] = useState(event?.localityId || '');
 
   const [formData, setFormData] = useState<CreateEventDto>({
@@ -47,7 +48,6 @@ export function EventForm({ event, mode }: EventFormProps) {
     cityId: (event as Event & { cityId?: string })?.cityId || '',
     latitude: event?.latitude || -34.6037,
     longitude: event?.longitude || -58.3816,
-    attendeeCount: event?.attendeeCount,
   });
 
   // Fetch current user
@@ -126,6 +126,18 @@ export function EventForm({ event, mode }: EventFormProps) {
   }), []);
 
   const [coordsWarning, setCoordsWarning] = useState('');
+
+  // When currentUser loads, ensure cityId is within allowed cities for level_4
+  useEffect(() => {
+    if (currentUser?.role !== 'level_4') return;
+    const assignedIds = (currentUser.assignedCities || []).map((c) => c.id);
+    if (assignedIds.length > 0 && formData.cityId && !assignedIds.includes(formData.cityId)) {
+      setFormData((prev) => ({ ...prev, cityId: '' }));
+      setSelectedLocalityId('');
+      setCoordsWarning('');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser]);
 
   function validateCoordsInPartido(lat: number, lng: number, cityId: string) {
     if (!geoJsonRef.current || !cityId) {
@@ -318,6 +330,7 @@ export function EventForm({ event, mode }: EventFormProps) {
             <Select
               value={isCustomTitle ? '__custom__' : selectedTitleId}
               onValueChange={(value) => {
+                setTitleSearch('');
                 if (value === '__custom__') {
                   setIsCustomTitle(true);
                   setSelectedTitleId('');
@@ -336,12 +349,32 @@ export function EventForm({ event, mode }: EventFormProps) {
               <SelectTrigger>
                 <SelectValue placeholder="Seleccionar título..." />
               </SelectTrigger>
-              <SelectContent className="max-h-[300px]">
-                {eventTitles.map((title) => (
-                  <SelectItem key={title.id} value={title.id}>
-                    {title.name}
-                  </SelectItem>
-                ))}
+              <SelectContent className="max-h-[340px]">
+                <div className="sticky top-0 bg-popover px-2 pb-2 pt-1">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar título..."
+                      value={titleSearch}
+                      onChange={(e) => setTitleSearch(e.target.value)}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      className="pl-8 h-8 text-sm"
+                      autoComplete="off"
+                    />
+                  </div>
+                </div>
+                <div className="overflow-y-auto max-h-[220px]">
+                  {eventTitles
+                    .filter((t) => t.name.toLowerCase().includes(titleSearch.toLowerCase()))
+                    .map((title) => (
+                      <SelectItem key={title.id} value={title.id}>
+                        {title.name}
+                      </SelectItem>
+                    ))}
+                  {eventTitles.filter((t) => t.name.toLowerCase().includes(titleSearch.toLowerCase())).length === 0 && (
+                    <p className="py-4 text-center text-sm text-muted-foreground">Sin resultados</p>
+                  )}
+                </div>
                 <SelectItem value="__custom__">Otro (personalizado)</SelectItem>
               </SelectContent>
             </Select>
@@ -405,21 +438,6 @@ export function EventForm({ event, mode }: EventFormProps) {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="attendeeCount">Asistentes Estimados</Label>
-            <Input
-              id="attendeeCount"
-              type="number"
-              min="0"
-              value={formData.attendeeCount || ''}
-              onChange={(e) => setFormData({
-                ...formData,
-                attendeeCount: e.target.value ? parseInt(e.target.value) : undefined
-              })}
-              placeholder="Número aproximado de asistentes"
-              disabled={isLevel4WithoutCities}
-            />
-          </div>
         </CardContent>
       </Card>
 

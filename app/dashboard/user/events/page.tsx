@@ -233,7 +233,7 @@ export default function MyEventsPage() {
                                 {event.title}
                               </TableCell>
                               <TableCell>
-                                <Badge variant="outline">
+                                <Badge variant="outline" className="px-3 py-1 border">
                                   {EVENT_TYPE_LABELS[event.eventType]}
                                 </Badge>
                               </TableCell>
@@ -241,38 +241,36 @@ export default function MyEventsPage() {
                                 {new Date(event.eventDate).toLocaleDateString('es-AR')}
                               </TableCell>
                               <TableCell>
-                                <Badge className="font-semibold" variant="secondary">
+                                <Badge className="px-3 py-1 font-semibold border" variant="secondary">
                                   {event.city?.name || 'Sin ciudad'}
                                 </Badge>
                               </TableCell>
                               <TableCell>
                                 {isCancelled ? (
-                                  <Badge variant={event.lifecycleStatus === 'cancelled' ? 'outline' : 'secondary'}>
+                                  <Badge className="px-3 py-1 border" variant={event.lifecycleStatus === 'cancelled' ? 'outline' : 'secondary'}>
                                     {EVENT_LIFECYCLE_STATUS_LABELS[event.lifecycleStatus!]}
                                   </Badge>
                                 ) : (
-                                  <Badge variant={getStatusBadgeVariant(event.status)}>
+                                  <Badge className="px-3 py-1 border" variant={getStatusBadgeVariant(event.status)}>
                                     {EVENT_STATUS_LABELS[event.status]}
                                   </Badge>
                                 )}
                               </TableCell>
                               <TableCell>
                                 {event.latestUpdate ? (
-                                  <div className="space-y-1.5">
-                                    <div className="flex items-center gap-2">
-                                      <Badge variant="outline" className="text-xs">
-                                        {UPDATE_TYPE_LABELS[event.latestUpdate.updateType]}
-                                      </Badge>
-                                      <span className="text-xs text-muted-foreground">
-                                        {new Date(event.latestUpdate.updateTime).toLocaleString('es-AR', {
-                                          day: '2-digit',
-                                          month: '2-digit',
-                                          hour: '2-digit',
-                                          minute: '2-digit',
-                                        })}
-                                      </span>
+                                  <div className="space-y-1">
+                                    <Badge variant="outline" className="text-xs">
+                                      {UPDATE_TYPE_LABELS[event.latestUpdate.updateType]}
+                                    </Badge>
+                                    <div className="text-xs text-muted-foreground">
+                                      {new Date(event.latestUpdate.updateTime).toLocaleString('es-AR', {
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                      })}
                                     </div>
-                                    <div className="flex items-center gap-3 text-xs">
+                                    <div className="flex items-center gap-2 text-xs">
                                       <span className="flex items-center gap-1">
                                         <Users className="h-3 w-3 text-primary" />
                                         <span className="font-medium">{event.latestUpdate.attendeeCount}</span>

@@ -38,6 +38,6 @@ export const ROLE_NAMES: Record<UserRole, string> = {
   level_1: 'Super Admin',
   level_2: 'Admin',
   level_3: 'Moderator',
-  level_4: 'Standard User',
+  level_4: 'Delegación',
   level_5: 'Read Only',
 };
