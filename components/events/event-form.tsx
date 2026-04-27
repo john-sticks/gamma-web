@@ -34,7 +34,6 @@ export function EventForm({ event, mode }: EventFormProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const [isCustomTitle, setIsCustomTitle] = useState(event?.isCustomTitle ?? true);
   const [selectedTitleId, setSelectedTitleId] = useState(event?.eventTitleId || '');
   const [titleSearch, setTitleSearch] = useState('');
   const [selectedLocalityId, setSelectedLocalityId] = useState(event?.localityId || '');
@@ -290,8 +289,8 @@ export function EventForm({ event, mode }: EventFormProps) {
       ...formData,
       latitude: parsed.latitude,
       longitude: parsed.longitude,
-      isCustomTitle,
-      ...(isCustomTitle ? {} : { eventTitleId: selectedTitleId }),
+      isCustomTitle: false,
+      eventTitleId: selectedTitleId,
       ...(selectedLocalityId ? { localityId: selectedLocalityId } : {}),
     };
     if (mode === 'create') {
@@ -328,20 +327,13 @@ export function EventForm({ event, mode }: EventFormProps) {
           <div className="space-y-2">
             <Label htmlFor="title">Título *</Label>
             <Select
-              value={isCustomTitle ? '__custom__' : selectedTitleId}
+              value={selectedTitleId}
               onValueChange={(value) => {
                 setTitleSearch('');
-                if (value === '__custom__') {
-                  setIsCustomTitle(true);
-                  setSelectedTitleId('');
-                  setFormData({ ...formData, title: '' });
-                } else {
-                  setIsCustomTitle(false);
-                  setSelectedTitleId(value);
-                  const selected = eventTitles.find((t) => t.id === value);
-                  if (selected) {
-                    setFormData({ ...formData, title: selected.name });
-                  }
+                setSelectedTitleId(value);
+                const selected = eventTitles.find((t) => t.id === value);
+                if (selected) {
+                  setFormData({ ...formData, title: selected.name });
                 }
               }}
               disabled={isLevel4WithoutCities}
@@ -375,20 +367,8 @@ export function EventForm({ event, mode }: EventFormProps) {
                     <p className="py-4 text-center text-sm text-muted-foreground">Sin resultados</p>
                   )}
                 </div>
-                <SelectItem value="__custom__">Otro (personalizado)</SelectItem>
               </SelectContent>
             </Select>
-            {isCustomTitle && (
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Escribí el título del evento..."
-                required
-                maxLength={255}
-                disabled={isLevel4WithoutCities}
-              />
-            )}
           </div>
 
           <div className="space-y-2">

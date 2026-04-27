@@ -157,12 +157,6 @@ const moderatorItems: SidebarSection[] = [
         description: 'Ver eventos',
       },
       {
-        title: 'Dashboard',
-        href: '/dashboard/moderator',
-        icon: LayoutDashboard,
-        description: 'Vista general',
-      },
-      {
         title: 'Notificaciones',
         href: '/dashboard/moderator/notifications',
         icon: Bell,

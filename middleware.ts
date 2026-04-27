@@ -131,7 +131,7 @@ function getDashboardRoute(role: string): string {
   const dashboardRoutes: Record<string, string> = {
     level_1: '/dashboard/super-admin/events/map',
     level_2: '/dashboard/admin/events/map',
-    level_3: '/dashboard/moderator',
+    level_3: '/dashboard/moderator/events/map',
     level_4: '/dashboard/user',
     level_5: '/dashboard/readonly/events/map',
   };

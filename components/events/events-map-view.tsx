@@ -68,7 +68,7 @@ export function EventsMapView({ presentationUrl }: EventsMapViewProps) {
             </p>
           </div>
           <Button asChild>
-            <Link href={presentationUrl}>
+            <Link href={`${presentationUrl}?timeFilter=${timeFilter}&month=${selectedMonth}&year=${selectedYear}`}>
               <Maximize2 className="mr-2 h-4 w-4" />
               Modo Presentación
             </Link>

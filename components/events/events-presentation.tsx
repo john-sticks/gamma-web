@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/select';
 import type { MapEvent } from '@/components/events/events-map';
 import { EVENT_LIFECYCLE_STATUS_LABELS } from '@/types/events';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   type TimeFilter,
   TIME_FILTER_LABELS,
@@ -32,12 +32,19 @@ const EventsMap = dynamic(
 
 export function EventsPresentation() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const now = new Date();
   const [filterType, setFilterType] = useState<string>('all');
   const [filterLifecycle, setFilterLifecycle] = useState<string>('all');
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>('today');
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>(
+    (searchParams.get('timeFilter') as TimeFilter) || 'today'
+  );
+  const [selectedMonth, setSelectedMonth] = useState(
+    searchParams.get('month') !== null ? Number(searchParams.get('month')) : now.getMonth()
+  );
+  const [selectedYear, setSelectedYear] = useState(
+    searchParams.get('year') !== null ? Number(searchParams.get('year')) : now.getFullYear()
+  );
   const [showFilters, setShowFilters] = useState(false);
   const [showLegend, setShowLegend] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
