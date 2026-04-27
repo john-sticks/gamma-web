@@ -21,8 +21,14 @@ export function filterEventsByTime<T extends { eventDate: string }>(
 
   switch (filter) {
     case 'today': {
-      const todayStr = now.toISOString().slice(0, 10);
-      return events.filter((e) => e.eventDate.slice(0, 10) === todayStr);
+      return events.filter((e) => {
+        const d = new Date(e.eventDate);
+        return (
+          d.getFullYear() === now.getFullYear() &&
+          d.getMonth() === now.getMonth() &&
+          d.getDate() === now.getDate()
+        );
+      });
     }
     case 'week': {
       const day = now.getDay();
