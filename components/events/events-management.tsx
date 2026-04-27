@@ -35,7 +35,7 @@ import { Pagination } from '@/components/ui/pagination';
 import { EventCard } from '@/components/events/event-card';
 import { EventChart } from '@/components/events/event-chart';
 import type { Event, EventWithLatestUpdate, EventChartData, EventUpdate as EventUpdateType } from '@/types/events';
-import type { City } from '@/types/city';
+import type { City, Locality } from '@/types/city';
 import { EVENT_TYPE_LABELS, EVENT_STATUS_LABELS, EVENT_LIFECYCLE_STATUS_LABELS, UPDATE_TYPE_LABELS } from '@/types/events';
 import Link from 'next/link';
 import { WhatsAppShareButton } from '@/components/events/whatsapp-share-button';
@@ -72,10 +72,13 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
   const [filterStatus, setFilterStatus] = useState<string>(defaultFilterStatus);
   const [filterLifecycleStatus, setFilterLifecycleStatus] = useState<string>('all');
   const [filterCity, setFilterCity] = useState<string[]>([]);
+  const [filterLocality, setFilterLocality] = useState<string>('all');
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
   const [showCityDropdown, setShowCityDropdown] = useState(false);
+  const [citySearch, setCitySearch] = useState('');
+  const [localitySearch, setLocalitySearch] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
@@ -98,7 +101,12 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset pagination on filter change
     setPage(1);
-  }, [filterType, filterStatus, filterLifecycleStatus, filterCity, dateFrom, dateTo]);
+  }, [filterType, filterStatus, filterLifecycleStatus, filterCity, filterLocality, dateFrom, dateTo]);
+
+  // Reset locality when cities change
+  useEffect(() => {
+    setFilterLocality('all');
+  }, [filterCity]);
 
   // Close city dropdown when clicking outside
   useEffect(() => {
@@ -127,9 +135,24 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
     },
   });
 
+  // Fetch localities for selected cities
+  const { data: localities = [] } = useQuery({
+    queryKey: ['localities-filter', filterCity],
+    queryFn: async () => {
+      const results = await Promise.all(
+        filterCity.map((cityId) =>
+          fetch(`/api/cities/${cityId}/localities`, { credentials: 'include' })
+            .then((r) => r.ok ? r.json() as Promise<Locality[]> : [])
+        )
+      );
+      return results.flat();
+    },
+    enabled: filterCity.length > 0,
+  });
+
   // Fetch events with pagination
   const { data: eventsResponse, isLoading } = useQuery({
-    queryKey: ['events', 'list', page, limit, debouncedSearch, filterType, filterStatus, filterLifecycleStatus, filterCity, dateFrom, dateTo],
+    queryKey: ['events', 'list', page, limit, debouncedSearch, filterType, filterStatus, filterLifecycleStatus, filterCity, filterLocality, dateFrom, dateTo],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -138,6 +161,7 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
         ...(filterType !== 'all' && { eventType: filterType }),
         ...(filterStatus !== 'all' && { status: filterStatus }),
         ...(filterLifecycleStatus !== 'all' && { lifecycleStatus: filterLifecycleStatus }),
+        ...(filterLocality !== 'all' && { locality: filterLocality }),
         ...(dateFrom && { dateFrom }),
         ...(dateTo && { dateTo }),
       });
@@ -394,56 +418,19 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
 
         {/* Metrics Summary - Solo para eventos aprobados */}
         {defaultFilterStatus === 'approved' && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3 sm:gap-4">
-            <Card className="border-destructive/30 bg-destructive/5">
-              <CardHeader className="pb-1 sm:pb-2">
-                <CardTitle className="text-xs sm:text-sm font-medium text-destructive">🔴 En Curso</CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3 sm:pb-6">
-                <div className="text-xl sm:text-2xl font-bold">{metrics?.ongoing ?? "No metrics"}</div>
-                <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">Activos ahora</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-orange-500/30 bg-orange-500/5">
-              <CardHeader className="pb-1 sm:pb-2">
-                <CardTitle className="text-xs sm:text-sm font-medium text-orange-700 dark:text-orange-400">⏳ Esperando</CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3 sm:pb-6">
-                <div className="text-xl sm:text-2xl font-bold">{metrics?.awaitingStart ?? "no metrics"}</div>
-                <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">Sin reporte</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-primary/30 bg-primary/5">
-              <CardHeader className="pb-1 sm:pb-2">
-                <CardTitle className="text-xs sm:text-sm font-medium text-primary">📅 Próximos</CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3 sm:pb-6">
-                <div className="text-xl sm:text-2xl font-bold">{metrics?.pending ?? "No metrics"}</div>
-                <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">Programados</p>
-              </CardContent>
-            </Card>
-
-            {/* <Card className="border-green-600/30 bg-green-600/5">
-              <CardHeader className="pb-1 sm:pb-2">
-                <CardTitle className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-400">✅ Finalizados</CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3 sm:pb-6">
-                <div className="text-xl sm:text-2xl font-bold">{metrics?.completed ?? 0}</div>
-                <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">Completados</p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-muted bg-muted/30">
-              <CardHeader className="pb-1 sm:pb-2">
-                <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">❌ Cancelados</CardTitle>
-              </CardHeader>
-              <CardContent className="pb-3 sm:pb-6">
-                <div className="text-xl sm:text-2xl font-bold">{metrics?.cancelled ?? 0}</div>
-                <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">No realizados</p>
-              </CardContent>
-            </Card> */}
+          <div className="flex flex-wrap gap-2">
+            <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-1.5">
+              <span className="text-xs text-destructive font-medium">🔴 En Curso</span>
+              <span className="text-base font-bold">{metrics?.ongoing ?? '—'}</span>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg border border-orange-500/30 bg-orange-500/5 px-3 py-1.5">
+              <span className="text-xs text-orange-700 dark:text-orange-400 font-medium">⏳ Esperando</span>
+              <span className="text-base font-bold">{metrics?.awaitingStart ?? '—'}</span>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5">
+              <span className="text-xs text-primary font-medium">📅 Próximos</span>
+              <span className="text-base font-bold">{metrics?.pending ?? '—'}</span>
+            </div>
           </div>
         )}
 
@@ -539,7 +526,7 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setShowCityDropdown(!showCityDropdown)}
+                    onClick={() => { setShowCityDropdown(!showCityDropdown); if (showCityDropdown) setCitySearch(''); }}
                     className="w-full justify-between"
                   >
                     <span className="truncate">
@@ -550,8 +537,21 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
                     <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
                   </Button>
                   {showCityDropdown && (
-                    <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md">
-                      <div className="max-h-60 overflow-y-auto p-2">
+                    <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-lg">
+                      <div className="p-2 border-b">
+                        <div className="relative">
+                          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                          <Input
+                            placeholder="Buscar ciudad..."
+                            value={citySearch}
+                            onChange={(e) => setCitySearch(e.target.value)}
+                            onKeyDown={(e) => e.stopPropagation()}
+                            className="h-8 pl-7 text-sm"
+                            autoFocus
+                          />
+                        </div>
+                      </div>
+                      <div className="max-h-52 overflow-y-auto p-1">
                         {filterCity.length > 0 && (
                           <button
                             type="button"
@@ -561,25 +561,104 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
                             Limpiar selección
                           </button>
                         )}
-                        {cities.map((city) => (
-                          <label
-                            key={city.id}
-                            className="flex items-center px-2 py-1.5 text-sm hover:bg-accent rounded-sm cursor-pointer"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={filterCity.includes(city.id)}
-                              onChange={() => toggleCitySelection(city.id)}
-                              className="mr-2 h-4 w-4 rounded border-gray-300"
-                            />
-                            {city.name}
-                          </label>
-                        ))}
+                        {cities
+                          .filter((city) =>
+                            city.name.toLowerCase().includes(citySearch.toLowerCase())
+                          )
+                          .map((city) => (
+                            <label
+                              key={city.id}
+                              className="flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent rounded-sm cursor-pointer"
+                            >
+                              <div className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 ${filterCity.includes(city.id) ? 'bg-primary border-primary' : 'border-input'}`}>
+                                {filterCity.includes(city.id) && <Check className="h-3 w-3 text-primary-foreground" />}
+                              </div>
+                              <input
+                                type="checkbox"
+                                checked={filterCity.includes(city.id)}
+                                onChange={() => toggleCitySelection(city.id)}
+                                className="sr-only"
+                              />
+                              <span className={filterCity.includes(city.id) ? 'font-medium' : ''}>{city.name}</span>
+                            </label>
+                          ))}
+                        {cities.filter((city) =>
+                          city.name.toLowerCase().includes(citySearch.toLowerCase())
+                        ).length === 0 && (
+                          <p className="px-2 py-3 text-sm text-muted-foreground text-center">Sin resultados</p>
+                        )}
                       </div>
                     </div>
                   )}
                 </div>
+                {/* Locality Filter */}
+                <Select
+                  value={filterLocality}
+                  onValueChange={(v) => { setFilterLocality(v); setLocalitySearch(''); }}
+                  disabled={filterCity.length === 0}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder={filterCity.length === 0 ? 'Seleccioná una ciudad' : 'Todas las localidades'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <div className="sticky top-0 bg-popover p-1 border-b mb-1">
+                      <div className="relative">
+                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                        <Input
+                          placeholder="Buscar localidad..."
+                          value={localitySearch}
+                          onChange={(e) => setLocalitySearch(e.target.value)}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          className="h-8 pl-7 text-sm"
+                        />
+                      </div>
+                    </div>
+                    <SelectItem value="all">Todas las localidades</SelectItem>
+                    {localities
+                      .filter((l) => l.name.toLowerCase().includes(localitySearch.toLowerCase()))
+                      .map((locality) => (
+                        <SelectItem key={locality.id} value={locality.id}>
+                          {locality.name}
+                        </SelectItem>
+                      ))}
+                    {localities.filter((l) => l.name.toLowerCase().includes(localitySearch.toLowerCase())).length === 0 && localitySearch && (
+                      <div className="px-2 py-3 text-sm text-muted-foreground text-center">Sin resultados</div>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
+
+              {/* Selected City Chips */}
+              {filterCity.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {filterCity.map((cityId) => {
+                    const city = cities.find((c) => c.id === cityId);
+                    if (!city) return null;
+                    return (
+                      <Badge key={cityId} variant="secondary" className="flex items-center gap-1 pr-1">
+                        <MapPin className="h-3 w-3" />
+                        <span>{city.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleCitySelection(cityId)}
+                          className="ml-1 rounded-full hover:bg-muted-foreground/20 p-0.5"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    );
+                  })}
+                  {filterCity.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={clearCityFilters}
+                      className="text-xs text-muted-foreground hover:text-destructive underline"
+                    >
+                      Limpiar todo
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Date Filters */}
               <div className="flex gap-4 flex-wrap items-end">
@@ -948,6 +1027,14 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
                   </Badge>
                 </div>
               </div>
+
+              {/* Description */}
+              {selectedEvent.description && (
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">Descripción</p>
+                  <p className="text-sm whitespace-pre-wrap">{selectedEvent.description}</p>
+                </div>
+              )}
 
               {/* Chart built from updates */}
               {(() => {

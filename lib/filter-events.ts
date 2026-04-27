@@ -11,7 +11,9 @@ export const MONTH_NAMES = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ] as const;
 
-export function filterEventsByTime<T extends { eventDate: string }>(
+const ACTIVE_LIFECYCLE_STATUSES = new Set(['ongoing', 'awaiting_start']);
+
+export function filterEventsByTime<T extends { eventDate: string; lifecycleStatus?: string }>(
   events: T[],
   filter: TimeFilter,
   selectedMonth?: number,
@@ -22,6 +24,8 @@ export function filterEventsByTime<T extends { eventDate: string }>(
   switch (filter) {
     case 'today': {
       return events.filter((e) => {
+        // Eventos activos siempre visibles en "hoy", aunque hayan empezado ayer
+        if (e.lifecycleStatus && ACTIVE_LIFECYCLE_STATUSES.has(e.lifecycleStatus)) return true;
         const d = new Date(e.eventDate);
         return (
           d.getFullYear() === now.getFullYear() &&
