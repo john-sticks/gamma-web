@@ -39,7 +39,7 @@ import type { City, Locality } from '@/types/city';
 import { EVENT_TYPE_LABELS, EVENT_STATUS_LABELS, EVENT_LIFECYCLE_STATUS_LABELS, UPDATE_TYPE_LABELS } from '@/types/events';
 import Link from 'next/link';
 import { WhatsAppShareButton } from '@/components/events/whatsapp-share-button';
-//import { ExportButtons } from '@/components/events/export-buttons';
+import { ExportButtons } from '@/components/events/export-buttons';
 
 interface PaginatedResponse<T> {
   data: T[];
@@ -105,6 +105,7 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
 
   // Reset locality when cities change
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFilterLocality('all');
   }, [filterCity]);
 
@@ -381,17 +382,18 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {/* <ExportButtons
+            <ExportButtons
               filters={{
                 ...(filterType !== 'all' ? { eventType: filterType } : {}),
                 ...(filterStatus !== 'all' ? { status: filterStatus } : {}),
                 ...(filterLifecycleStatus !== 'all' ? { lifecycleStatus: filterLifecycleStatus } : {}),
                 ...(filterCity.length > 0 ? { city: filterCity } : {}),
+                ...(filterLocality !== 'all' ? { locality: filterLocality } : {}),
                 ...(dateFrom ? { dateFrom } : {}),
                 ...(dateTo ? { dateTo } : {}),
                 ...(debouncedSearch ? { search: debouncedSearch } : {}),
               }}
-            /> */}
+            />
             <Button asChild variant="outline" size="sm" className="flex-1 sm:flex-none">
               <Link href={`${basePath}/events/presentation`}>
                 <Presentation className="mr-2 h-4 w-4" />

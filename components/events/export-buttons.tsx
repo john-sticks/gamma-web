@@ -19,7 +19,7 @@ interface ExportButtonsProps {
 export function ExportButtons({ filters, eventId }: ExportButtonsProps) {
   const [isExporting, setIsExporting] = useState(false);
 
-  async function handleExport(format: 'xlsx' | 'csv') {
+  async function handleExport(format: 'xlsx' | 'pdf') {
     setIsExporting(true);
     try {
       let url: string;
@@ -45,9 +45,7 @@ export function ExportButtons({ filters, eventId }: ExportButtonsProps) {
 
       const response = await fetch(url, { credentials: 'include' });
 
-      if (!response.ok) {
-        throw new Error('Export failed');
-      }
+      if (!response.ok) throw new Error('Export failed');
 
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
@@ -109,9 +107,9 @@ export function ExportButtons({ filters, eventId }: ExportButtonsProps) {
           <FileSpreadsheet className="mr-2 h-4 w-4" />
           Excel (.xlsx)
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleExport('csv')}>
+        <DropdownMenuItem onClick={() => handleExport('pdf')}>
           <FileText className="mr-2 h-4 w-4" />
-          CSV (.csv)
+          PDF (.pdf)
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
