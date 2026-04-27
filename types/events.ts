@@ -18,6 +18,7 @@ export interface EventUpdate {
   attendeeCount: number;
   policePresence: boolean;
   streetClosure: boolean;
+  tireBurning: boolean;
   notes?: string;
   latitude?: number;
   longitude?: number;
@@ -46,6 +47,7 @@ export interface EventChartData {
     attendees: number;
     policePresence: boolean;
     streetClosure: boolean;
+    tireBurning: boolean;
     type: EventUpdate['updateType'];
     notes: string;
   }[];
@@ -64,6 +66,7 @@ export interface CreateEventUpdateDto {
   attendeeCount: number;
   policePresence: boolean;
   streetClosure: boolean;
+  tireBurning: boolean;
   notes?: string;
   latitude?: number;
   longitude?: number;
@@ -114,6 +117,7 @@ export interface EventWithLatestUpdate extends Event {
     attendeeCount: number;
     policePresence: boolean;
     streetClosure: boolean;
+    tireBurning: boolean;
     notes?: string;
     createdBy: {
       id: string;

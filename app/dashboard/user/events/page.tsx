@@ -287,6 +287,12 @@ export default function MyEventsPage() {
                                           Corte
                                         </span>
                                       )}
+                                      {event.latestUpdate.tireBurning && (
+                                        <span className="flex items-center gap-1 text-orange-700">
+                                          <span className="text-xs">🔥</span>
+                                          Cubiertas
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
                                 ) : (

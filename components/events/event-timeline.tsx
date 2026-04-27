@@ -50,6 +50,7 @@ export function EventTimeline({
     updateType: 'attendance_update',
     policePresence: false,
     streetClosure: false,
+    tireBurning: false,
   });
 
   const handleSubmitUpdate = () => {
@@ -81,9 +82,21 @@ export function EventTimeline({
         updateType: 'attendance_update',
         policePresence: false,
         streetClosure: false,
+        tireBurning: false,
       });
       setAddDialogOpen(false);
     }
+  };
+
+  const handleOpenAddDialog = () => {
+    const lastUpdate = updates.find((u) => u.updateType !== 'event_created');
+    setNewUpdate({
+      updateType: 'attendance_update',
+      policePresence: lastUpdate?.policePresence ?? false,
+      streetClosure: lastUpdate?.streetClosure ?? false,
+      tireBurning: lastUpdate?.tireBurning ?? false,
+    });
+    setAddDialogOpen(true);
   };
 
   const handleOpenEdit = (update: EventUpdate) => {
@@ -94,6 +107,7 @@ export function EventTimeline({
       attendeeCount: update.attendeeCount,
       policePresence: update.policePresence,
       streetClosure: update.streetClosure,
+      tireBurning: update.tireBurning,
       notes: update.notes || '',
     });
     setEditDialogOpen(true);
@@ -186,7 +200,7 @@ export function EventTimeline({
             <p className="text-xs text-amber-600">Tu panorama será enviado para revisión</p>
           )}
           {canEdit && (
-            <Button onClick={() => setAddDialogOpen(true)}>
+            <Button onClick={handleOpenAddDialog}>
               Agregar Actualización
             </Button>
           )}
@@ -199,7 +213,7 @@ export function EventTimeline({
             <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>No hay actualizaciones en el historial</p>
             {canEdit && (
-              <Button variant="outline" className="mt-4" onClick={() => setAddDialogOpen(true)}>
+              <Button variant="outline" className="mt-4" onClick={handleOpenAddDialog}>
                 Agregar Primera Actualización
               </Button>
             )}
@@ -294,6 +308,13 @@ export function EventTimeline({
                         <MessageSquare className="h-4 w-4 text-muted-foreground" />
                         <Badge variant={update.streetClosure ? 'destructive' : 'outline'}>
                           {update.streetClosure ? 'Calle cortada' : 'Calle abierta'}
+                        </Badge>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">🔥</span>
+                        <Badge variant={update.tireBurning ? 'destructive' : 'outline'}>
+                          {update.tireBurning ? 'Quema de cubiertas' : 'Sin quema'}
                         </Badge>
                       </div>
 
@@ -408,6 +429,21 @@ export function EventTimeline({
                     Corte de calle
                   </label>
                 </div>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="tireBurning"
+                    checked={newUpdate.tireBurning}
+                    onChange={(e) => setNewUpdate({
+                      ...newUpdate,
+                      tireBurning: e.target.checked
+                    })}
+                  />
+                  <label htmlFor="tireBurning" className="text-sm">
+                    Quema de cubiertas
+                  </label>
+                </div>
               </div>
 
               <div>
@@ -513,6 +549,21 @@ export function EventTimeline({
                   />
                   <label htmlFor="editStreetClosure" className="text-sm">
                     Corte de calle
+                  </label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="editTireBurning"
+                    checked={editForm.tireBurning || false}
+                    onChange={(e) => setEditForm({
+                      ...editForm,
+                      tireBurning: e.target.checked
+                    })}
+                  />
+                  <label htmlFor="editTireBurning" className="text-sm">
+                    Quema de cubiertas
                   </label>
                 </div>
               </div>

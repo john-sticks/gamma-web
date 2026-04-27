@@ -14,6 +14,7 @@ export interface MapEvent extends Event {
     attendeeCount: number;
     policePresence: boolean;
     streetClosure: boolean;
+    tireBurning: boolean;
     updateTime: string;
   } | null;
 }
@@ -180,6 +181,12 @@ export function EventsMap({ events, center = BUENOS_AIRES_CENTER, zoom = BUENOS_
                   <div className="flex items-center gap-1">
                     <span>🚧</span>
                     <span className="text-gray-500">Corte de calle</span>
+                  </div>
+                )}
+                {event.latestUpdate?.tireBurning && (
+                  <div className="flex items-center gap-1">
+                    <span>🔥</span>
+                    <span className="text-gray-500">Quema de cubiertas</span>
                   </div>
                 )}
               </div>

@@ -1054,6 +1054,7 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
                     attendees: u.attendeeCount,
                     policePresence: u.policePresence,
                     streetClosure: u.streetClosure,
+                    tireBurning: u.tireBurning,
                     type: u.updateType,
                     notes: u.notes || '',
                   })),
@@ -1115,6 +1116,9 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
                             )}
                             {update.streetClosure && (
                               <Badge variant="secondary" className="text-[10px]">Corte</Badge>
+                            )}
+                            {update.tireBurning && (
+                              <Badge variant="secondary" className="text-[10px]">🔥 Cubiertas</Badge>
                             )}
                           </div>
                           {update.notes && (

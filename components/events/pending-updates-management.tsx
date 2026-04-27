@@ -59,6 +59,7 @@ interface EditFormData {
   attendeeCount: number;
   policePresence: boolean;
   streetClosure: boolean;
+  tireBurning: boolean;
   notes: string;
 }
 
@@ -151,6 +152,7 @@ export function PendingUpdatesManagement() {
       attendeeCount: update.attendeeCount ?? 0,
       policePresence: update.policePresence,
       streetClosure: update.streetClosure,
+      tireBurning: update.tireBurning,
       notes: update.notes || '',
     });
     setViewDialogOpen(true);
@@ -254,6 +256,7 @@ export function PendingUpdatesManagement() {
       editForm.attendeeCount !== (selectedUpdate.attendeeCount ?? 0) ||
       editForm.policePresence !== selectedUpdate.policePresence ||
       editForm.streetClosure !== selectedUpdate.streetClosure ||
+      editForm.tireBurning !== selectedUpdate.tireBurning ||
       editForm.notes !== (selectedUpdate.notes || '')
     );
   }
@@ -269,6 +272,7 @@ export function PendingUpdatesManagement() {
     if (editForm.attendeeCount !== (selectedUpdate.attendeeCount ?? 0)) changes.attendeeCount = editForm.attendeeCount;
     if (editForm.policePresence !== selectedUpdate.policePresence) changes.policePresence = editForm.policePresence;
     if (editForm.streetClosure !== selectedUpdate.streetClosure) changes.streetClosure = editForm.streetClosure;
+    if (editForm.tireBurning !== selectedUpdate.tireBurning) changes.tireBurning = editForm.tireBurning;
     if (editForm.notes !== (selectedUpdate.notes || '')) changes.notes = editForm.notes;
     return changes;
   }
@@ -721,6 +725,19 @@ export function PendingUpdatesManagement() {
                     })}
                   />
                   <Label htmlFor="edit-streetClosure">Corte de calle</Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="edit-tireBurning"
+                    checked={editForm.tireBurning}
+                    onChange={(e) => setEditForm({
+                      ...editForm,
+                      tireBurning: e.target.checked
+                    })}
+                  />
+                  <Label htmlFor="edit-tireBurning">Quema de cubiertas</Label>
                 </div>
               </div>
 

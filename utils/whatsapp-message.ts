@@ -4,6 +4,7 @@ interface LatestUpdateData {
   attendeeCount?: number | null;
   policePresence?: boolean;
   streetClosure?: boolean;
+  tireBurning?: boolean;
   notes?: string;
   updateType?: string;
 }
@@ -14,10 +15,6 @@ export function generateWhatsAppMessage(
   latestUpdate?: LatestUpdateData | null,
 ): string {
   const lines: string[] = [];
-
-  // Header
-  lines.push('*Panorama*');
-  lines.push('');
 
   // Location: Localidad/Ciudad
   const locationParts: string[] = [];
@@ -69,6 +66,10 @@ export function generateWhatsAppMessage(
       suffixParts.push('Con corte');
     } else {
       suffixParts.push('Sin corte');
+    }
+
+    if (updateData.tireBurning) {
+      suffixParts.push('Con quema de cubiertas');
     }
   } else {
     if (event.description) {
