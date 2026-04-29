@@ -122,6 +122,9 @@ export default function EventDetailPage() {
     );
   }
 
+  const isEventClosed =
+    event?.lifecycleStatus === 'completed' || event?.lifecycleStatus === 'cancelled';
+
   const handleAddUpdate = (update: CreateEventUpdateDto) => {
     addUpdateMutation.mutate(update);
   };
@@ -237,10 +240,15 @@ export default function EventDetailPage() {
           </TabsList>
 
           <TabsContent value="timeline">
+            {isEventClosed && (
+              <div className="mb-4 px-4 py-3 rounded-md border border-muted bg-muted/40 text-sm text-muted-foreground">
+                Este evento está <strong>{event.lifecycleStatus === 'completed' ? 'finalizado' : 'cancelado'}</strong> — no se pueden agregar nuevas actualizaciones.
+              </div>
+            )}
             <EventTimeline
               updates={updates}
-              onAddUpdate={handleAddUpdate}
-              canEdit={true}
+              onAddUpdate={isEventClosed ? undefined : handleAddUpdate}
+              canEdit={!isEventClosed}
               onRefresh={() => refetchUpdates()}
               eventId={event.id}
               userRole="level_4"

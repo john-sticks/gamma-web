@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Check, X, Eye, Users, Loader2, Filter, ChevronDown, MapPin } from 'lucide-react';
+import { Search, Check, X, Eye, Users, Loader2, Filter, ChevronDown, MapPin, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -82,6 +82,11 @@ export function PendingUpdatesManagement() {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedUpdate, setSelectedUpdate] = useState<EventUpdateWithEvent | null>(null);
   const [editForm, setEditForm] = useState<EditFormData | null>(null);
+  const [eventWarningModal, setEventWarningModal] = useState<{
+    open: boolean;
+    update: EventUpdateWithEvent | null;
+    actionType: 'quick' | 'saveAndApprove';
+  }>({ open: false, update: null, actionType: 'quick' });
 
   // Debounce search term
   useEffect(() => {
@@ -239,12 +244,49 @@ export function PendingUpdatesManagement() {
     },
   });
 
+  // Approve event mutation (used when event is still pending)
+  const approveEventMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      const response = await fetch(`/api/events/${eventId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ status: 'approved' }),
+      });
+      if (!response.ok) throw new Error('Error al aprobar el evento');
+      return response.json();
+    },
+  });
+
   function handleApprove(update: EventUpdateWithEvent) {
+    if (update.event?.status === 'pending') {
+      setEventWarningModal({ open: true, update, actionType: 'quick' });
+      return;
+    }
     updateStatusMutation.mutate({ updateId: update.id, status: 'approved' });
   }
 
   function handleReject(update: EventUpdateWithEvent) {
     updateStatusMutation.mutate({ updateId: update.id, status: 'rejected' });
+  }
+
+  async function handleConfirmWithEventApproval() {
+    const { update, actionType } = eventWarningModal;
+    if (!update) return;
+
+    setEventWarningModal({ open: false, update: null, actionType: 'quick' });
+
+    try {
+      await approveEventMutation.mutateAsync(update.event.id);
+
+      if (actionType === 'quick') {
+        updateStatusMutation.mutate({ updateId: update.id, status: 'approved' });
+      } else {
+        handleSaveAndApprove();
+      }
+    } catch {
+      toast.error('Error al aprobar el evento');
+    }
   }
 
   // Check if form has changes compared to original
@@ -279,6 +321,10 @@ export function PendingUpdatesManagement() {
 
   function handleSaveAndApprove() {
     if (!selectedUpdate || !editForm) return;
+    if (selectedUpdate.event?.status === 'pending') {
+      setEventWarningModal({ open: true, update: selectedUpdate, actionType: 'saveAndApprove' });
+      return;
+    }
     const changes = getChangedFields();
     saveAndApproveMutation.mutate({ update: selectedUpdate, data: changes });
   }
@@ -602,6 +648,47 @@ export function PendingUpdatesManagement() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Event pending warning modal */}
+      <Dialog open={eventWarningModal.open} onOpenChange={(open) => !open && setEventWarningModal({ open: false, update: null, actionType: 'quick' })}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="h-5 w-5" />
+              Evento pendiente de aprobación
+            </DialogTitle>
+            <DialogDescription className="pt-2 text-sm text-foreground">
+              El evento{' '}
+              <span className="font-semibold">
+                &ldquo;{eventWarningModal.update?.event?.title}&rdquo;
+              </span>{' '}
+              aún no fue aprobado y no aparece en el mapa.
+              <br /><br />
+              Si aprobás este panorama, el evento también será aprobado automáticamente.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setEventWarningModal({ open: false, update: null, actionType: 'quick' })}
+            >
+              Cancelar
+            </Button>
+            <Button
+              className="bg-green-600 hover:bg-green-700 text-white"
+              onClick={handleConfirmWithEventApproval}
+              disabled={approveEventMutation.isPending}
+            >
+              {approveEventMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Check className="mr-2 h-4 w-4" />
+              )}
+              Aprobar evento y panorama
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit & Approve Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>

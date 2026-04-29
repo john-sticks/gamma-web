@@ -137,6 +137,14 @@ export type CreateEventDto = {
      * Número estimado de asistentes
      */
     attendeeCount?: number;
+    /**
+     * Extracto del hecho que motivó este evento
+     */
+    relatedIncidentExcerpt?: string;
+    /**
+     * Dependencia policial más cercana (requerido para reclamos de justicia o seguridad)
+     */
+    nearestPoliceStation?: string;
 };
 
 export type UpdateEventDto = {
@@ -180,6 +188,14 @@ export type UpdateEventDto = {
      * Estado del evento (solo admin/moderador pueden cambiar)
      */
     status?: 'pending' | 'approved' | 'rejected' | 'ongoing' | 'completed' | 'cancelled';
+    /**
+     * Extracto del hecho que motivó este evento
+     */
+    relatedIncidentExcerpt?: string;
+    /**
+     * Dependencia policial más cercana (requerido para reclamos de justicia o seguridad)
+     */
+    nearestPoliceStation?: string;
 };
 
 export type CreateEventUpdateDto = {

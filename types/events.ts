@@ -95,6 +95,8 @@ export interface Event {
   longitude: number;
   status: 'pending' | 'approved' | 'rejected';
   lifecycleStatus?: 'pending' | 'awaiting_start' | 'ongoing' | 'completed' | 'cancelled' | 'pending_cancellation';
+  relatedIncidentExcerpt?: string | null;
+  nearestPoliceStation?: string | null;
   attendeeCount?: number;
   createdById: string;
   createdBy: {

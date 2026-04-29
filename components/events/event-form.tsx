@@ -47,6 +47,8 @@ export function EventForm({ event, mode }: EventFormProps) {
     cityId: (event as Event & { cityId?: string })?.cityId || '',
     latitude: event?.latitude || -34.6037,
     longitude: event?.longitude || -58.3816,
+    relatedIncidentExcerpt: event?.relatedIncidentExcerpt || '',
+    nearestPoliceStation: event?.nearestPoliceStation || '',
   });
 
   // Fetch current user
@@ -292,6 +294,8 @@ export function EventForm({ event, mode }: EventFormProps) {
       isCustomTitle: false,
       eventTitleId: selectedTitleId,
       ...(selectedLocalityId ? { localityId: selectedLocalityId } : {}),
+      relatedIncidentExcerpt: formData.relatedIncidentExcerpt || undefined,
+      nearestPoliceStation: formData.nearestPoliceStation || undefined,
     };
     if (mode === 'create') {
       createMutation.mutate(submitData);
@@ -304,6 +308,12 @@ export function EventForm({ event, mode }: EventFormProps) {
 
   // Check if level_4 user has no assigned cities
   const isLevel4WithoutCities = currentUser?.role === 'level_4' && cities.length === 0;
+
+  const selectedTitle = eventTitles.find((t) => t.id === selectedTitleId);
+  const requiresPoliceStation = selectedTitle
+    ? selectedTitle.name.toLowerCase().includes('reclamo de justicia') ||
+      selectedTitle.name.toLowerCase().includes('reclamo de seguridad')
+    : false;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -384,6 +394,26 @@ export function EventForm({ event, mode }: EventFormProps) {
             />
           </div>
 
+          {requiresPoliceStation && (
+            <div className="space-y-2">
+              <Label htmlFor="nearestPoliceStation">
+                Dependencia policial más cercana <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="nearestPoliceStation"
+                value={formData.nearestPoliceStation || ''}
+                onChange={(e) => setFormData({ ...formData, nearestPoliceStation: e.target.value })}
+                placeholder="Ej: Comisaría 1ra de La Plata"
+                required
+                maxLength={500}
+                disabled={isLevel4WithoutCities}
+              />
+              <p className="text-sm text-muted-foreground">
+                Este tipo de evento requiere indicar la dependencia policial más cercana al lugar.
+              </p>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="eventType">Tipo de Evento *</Label>
@@ -418,6 +448,28 @@ export function EventForm({ event, mode }: EventFormProps) {
             </div>
           </div>
 
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Hecho vinculado</CardTitle>
+          <CardDescription>
+            Si el evento surge a raíz de un hecho previo (homicidio, hecho de violencia, etc.), pegá el extracto acá.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <Label htmlFor="relatedIncidentExcerpt">Extracto del hecho</Label>
+            <textarea
+              id="relatedIncidentExcerpt"
+              value={formData.relatedIncidentExcerpt || ''}
+              onChange={(e) => setFormData({ ...formData, relatedIncidentExcerpt: e.target.value })}
+              placeholder="Pegá aquí el extracto del hecho que motivó este evento..."
+              className="w-full min-h-[120px] px-3 py-2 border border-input rounded-md bg-background disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={isLevel4WithoutCities}
+            />
+          </div>
         </CardContent>
       </Card>
 
