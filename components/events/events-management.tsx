@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Pencil, Trash2, MapPin, Eye, LayoutGrid, List, Presentation, Check, X, Filter, ChevronDown, Users, Clock } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, MapPin, Eye, LayoutGrid, List, Presentation, Check, X, Filter, ChevronDown, Users, Clock, FileText } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -81,6 +82,8 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
   const [localitySearch, setLocalitySearch] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [incidentDialogOpen, setIncidentDialogOpen] = useState(false);
+  const [incidentEvent, setIncidentEvent] = useState<Event | null>(null);
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [cancellationDialogOpen, setCancellationDialogOpen] = useState(false);
@@ -775,28 +778,50 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
                 <TableBody>
                   {eventsResponse?.data.map((event) => (
                     <TableRow key={event.id}>
-                      <TableCell className="font-medium max-w-sm truncate">
-                        {event.title.length > 30 ? (
-                          <span
-                            className="cursor-pointer hover:text-primary transition-colors"
-                            title={expandedTitles.has(event.id) ? 'Click para colapsar' : 'Click para ver título completo'}
-                            onClick={() => setExpandedTitles(prev => {
-                              const next = new Set(prev);
-                              if (next.has(event.id)) {
-                                next.delete(event.id);
-                              } else {
-                                next.add(event.id);
-                              }
-                              return next;
-                            })}
-                          >
-                            {expandedTitles.has(event.id)
-                              ? event.title
-                              : `${event.title.slice(0, 30)}...`}
+                      <TableCell className="font-medium max-w-sm">
+                        <div className="flex items-center gap-1.5">
+                          <span className="truncate">
+                            {event.title.length > 30 ? (
+                              <span
+                                className="cursor-pointer hover:text-primary transition-colors"
+                                title={expandedTitles.has(event.id) ? 'Click para colapsar' : 'Click para ver título completo'}
+                                onClick={() => setExpandedTitles(prev => {
+                                  const next = new Set(prev);
+                                  if (next.has(event.id)) {
+                                    next.delete(event.id);
+                                  } else {
+                                    next.add(event.id);
+                                  }
+                                  return next;
+                                })}
+                              >
+                                {expandedTitles.has(event.id)
+                                  ? event.title
+                                  : `${event.title.slice(0, 30)}...`}
+                              </span>
+                            ) : (
+                              event.title
+                            )}
                           </span>
-                        ) : (
-                          event.title
-                        )}
+                          {event.relatedIncidentExcerpt && (
+                            <TooltipProvider delayDuration={200}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    className="shrink-0 text-amber-500 hover:text-amber-600 transition-colors"
+                                    onClick={() => { setIncidentEvent(event); setIncidentDialogOpen(true); }}
+                                  >
+                                    <FileText className="h-3.5 w-3.5" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="right" className="max-w-xs">
+                                  <p className="font-medium mb-1">Hecho vinculado</p>
+                                  <p className="text-xs opacity-90 line-clamp-3">{event.relatedIncidentExcerpt}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
@@ -1257,6 +1282,26 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
             >
               {cancellationMutation.isPending ? 'Enviando...' : 'Solicitar Cancelación'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Incident excerpt dialog */}
+      <Dialog open={incidentDialogOpen} onOpenChange={setIncidentDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-amber-500" />
+              Hecho vinculado
+            </DialogTitle>
+            <DialogDescription className="text-xs truncate">
+              {incidentEvent?.title}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-72 overflow-y-auto rounded-md border bg-muted/40 px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap">
+            {incidentEvent?.relatedIncidentExcerpt}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIncidentDialogOpen(false)}>Cerrar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

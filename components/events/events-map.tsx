@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, GeoJSON, useMap } from 'react-leaflet';
 import { Icon } from 'leaflet';
 import type { PathOptions } from 'leaflet';
@@ -88,6 +88,11 @@ const partidoStyle: PathOptions = {
 export function EventsMap({ events, center = BUENOS_AIRES_CENTER, zoom = BUENOS_AIRES_ZOOM }: EventsMapProps) {
   const [mounted, setMounted] = useState(false);
   const [geoData, setGeoData] = useState<GeoJSON.FeatureCollection | null>(null);
+  const [expandedIncident, setExpandedIncident] = useState<string | null>(null);
+
+  const toggleIncident = useCallback((eventId: string) => {
+    setExpandedIncident((prev) => (prev === eventId ? null : eventId));
+  }, []);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Mount flag for client-side rendering
@@ -161,6 +166,25 @@ export function EventsMap({ events, center = BUENOS_AIRES_CENTER, zoom = BUENOS_
               <div className="max-h-32 overflow-y-auto mb-3 pr-1">
                 <p className="text-sm text-gray-600">{event.description}</p>
               </div>
+
+              {/* Related incident */}
+              {event.relatedIncidentExcerpt && (
+                <div className="mb-3">
+                  <button
+                    onClick={() => toggleIncident(event.id)}
+                    className="flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:text-amber-700 transition-colors border border-amber-300 bg-amber-50 rounded-full px-2.5 py-0.5"
+                  >
+                    <span>📋</span>
+                    <span>Hecho vinculado</span>
+                    <span>{expandedIncident === event.id ? '▲' : '▼'}</span>
+                  </button>
+                  {expandedIncident === event.id && (
+                    <div className="mt-2 max-h-28 overflow-y-auto rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">
+                      {event.relatedIncidentExcerpt}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Stats row */}
               <div className="flex items-center gap-3 text-xs border-t pt-2">
