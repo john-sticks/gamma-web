@@ -865,7 +865,19 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
                       {defaultFilterStatus === 'approved' && (
                         <>
                           <TableCell>
-                            {(event as EventWithLatestUpdate).latestUpdate ? (
+                            {event.lifecycleStatus === 'completed' ? (
+                              (event as EventWithLatestUpdate).maxAttendeeCount != null ? (
+                                <div className="flex items-center gap-1.5">
+                                  <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                                  <span className="font-semibold">
+                                    {(event as EventWithLatestUpdate).maxAttendeeCount}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground">máx</span>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">Sin datos</span>
+                              )
+                            ) : (event as EventWithLatestUpdate).latestUpdate ? (
                               <div className="flex items-center gap-1.5">
                                 <Users className="h-3.5 w-3.5 text-muted-foreground" />
                                 <span className="font-semibold">

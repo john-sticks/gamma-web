@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   FileCheck,
   Bell,
+  ClipboardList,
   type LucideIcon,
 } from 'lucide-react';
 import { UserRole } from '@/types/auth';
@@ -70,6 +71,17 @@ const superAdminItems: SidebarSection[] = [
     ],
   },
   {
+    title: 'Requerimientos',
+    items: [
+      {
+        title: 'Requerimientos',
+        href: '/dashboard/super-admin/requirements',
+        icon: ClipboardList,
+        description: 'Gestionar requerimientos a delegaciones',
+      },
+    ],
+  },
+  {
     title: 'Gestión',
     items: [
       {
@@ -123,6 +135,17 @@ const adminItems: SidebarSection[] = [
         icon: FileCheck,
         description: 'Aprobar/Rechazar panoramas',
         badge: 'pending-updates',
+      },
+    ],
+  },
+  {
+    title: 'Requerimientos',
+    items: [
+      {
+        title: 'Requerimientos',
+        href: '/dashboard/admin/requirements',
+        icon: ClipboardList,
+        description: 'Gestionar requerimientos a delegaciones',
       },
     ],
   },
@@ -181,6 +204,12 @@ const moderatorItems: SidebarSection[] = [
         description: 'Aprobar panoramas',
         badge: 'pending-updates',
       },
+      {
+        title: 'Requerimientos',
+        href: '/dashboard/moderator/requirements',
+        icon: ClipboardList,
+        description: 'Gestionar requerimientos a delegaciones',
+      },
       // {
       //   title: 'Actividad',
       //   href: '/dashboard/moderator/activity',
@@ -230,6 +259,13 @@ const userItems: SidebarSection[] = [
         href: '/dashboard/user/notifications',
         icon: Bell,
         badge: 'notifications',
+      },
+      {
+        title: 'Requerimientos',
+        href: '/dashboard/user/requirements',
+        icon: ClipboardList,
+        description: 'Ver y responder requerimientos',
+        badge: 'pending-requirements',
       },
     ],
   },

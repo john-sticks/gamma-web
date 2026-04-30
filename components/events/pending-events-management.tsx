@@ -309,6 +309,19 @@ export function PendingEventsManagement() {
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center gap-3">
+              <Button
+                variant={showFilters ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setShowFilters(!showFilters)}
+                className="shrink-0 relative"
+              >
+                <Filter className="h-4 w-4" />
+                {activeFiltersCount > 0 && (
+                  <Badge className="absolute -top-1.5 -right-1.5 h-4 w-4 p-0 flex items-center justify-center text-[9px]">
+                    {activeFiltersCount}
+                  </Badge>
+                )}
+              </Button>
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -318,20 +331,6 @@ export function PendingEventsManagement() {
                   className="pl-8"
                 />
               </div>
-              <Button
-                variant={showFilters ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setShowFilters(!showFilters)}
-                className="shrink-0"
-              >
-                <Filter className="h-4 w-4 mr-2" />
-                Filtros
-                {activeFiltersCount > 0 && (
-                  <Badge className="ml-2 h-5 w-5 p-0 flex items-center justify-center text-[10px]">
-                    {activeFiltersCount}
-                  </Badge>
-                )}
-              </Button>
             </div>
           </CardHeader>
 
@@ -655,30 +654,14 @@ export function PendingEventsManagement() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-attendees">Asistentes Estimados</Label>
-                  <Input
-                    id="edit-attendees"
-                    type="number"
-                    min="0"
-                    value={editForm.attendeeCount ?? ''}
-                    onChange={(e) => setEditForm({
-                      ...editForm,
-                      attendeeCount: e.target.value ? parseInt(e.target.value) : undefined
-                    })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="edit-coords">Coordenadas</Label>
-                  <Input
-                    id="edit-coords"
-                    value={coordsInput}
-                    onChange={(e) => handleCoordsChange(e.target.value)}
-                    placeholder="-34.6037, -58.3816"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-coords">Coordenadas</Label>
+                <Input
+                  id="edit-coords"
+                  value={coordsInput}
+                  onChange={(e) => handleCoordsChange(e.target.value)}
+                  placeholder="-34.6037, -58.3816"
+                />
               </div>
 
               <div className="p-3 bg-muted/50 rounded-lg">

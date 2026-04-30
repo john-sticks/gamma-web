@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Pencil, Trash2, Loader2, X } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Loader2, X, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -56,6 +56,7 @@ export function UsersManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterRole, setFilterRole] = useState<string>('all');
+  const [showFilters, setShowFilters] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -267,43 +268,59 @@ export function UsersManagement() {
 
         {/* Filters */}
         <Card>
-          <CardHeader>
-            <CardTitle>Filtros</CardTitle>
-            <CardDescription>Busca y filtra usuarios</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="text"
-                    name="user-search-filter"
-                    placeholder="Buscar por nombre o usuario..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-8"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck="false"
-                  />
-                </div>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  name="user-search-filter"
+                  placeholder="Buscar por nombre o usuario..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                />
               </div>
-              <Select value={filterRole} onValueChange={setFilterRole}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Filtrar por rol" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los roles</SelectItem>
-                  <SelectItem value="level_2">Admin</SelectItem>
-                  <SelectItem value="level_3">Moderador</SelectItem>
-                  <SelectItem value="level_4">Operador</SelectItem>
-                  <SelectItem value="level_5">Solo lectura</SelectItem>
-                </SelectContent>
-              </Select>
+              <Button
+                variant={showFilters ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setShowFilters(!showFilters)}
+                className="shrink-0 relative"
+              >
+                <Filter className="h-4 w-4" />
+                {filterRole !== 'all' && (
+                  <Badge className="absolute -top-1.5 -right-1.5 h-4 w-4 p-0 flex items-center justify-center text-[9px]">1</Badge>
+                )}
+              </Button>
             </div>
-          </CardContent>
+          </CardHeader>
+          {showFilters && (
+            <CardContent className="pt-0 border-t">
+              <div className="flex flex-wrap gap-3 pt-4">
+                <Select value={filterRole} onValueChange={setFilterRole}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Filtrar por rol" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los roles</SelectItem>
+                    <SelectItem value="level_2">Admin</SelectItem>
+                    <SelectItem value="level_3">Moderador</SelectItem>
+                    <SelectItem value="level_4">Operador</SelectItem>
+                    <SelectItem value="level_5">Solo lectura</SelectItem>
+                  </SelectContent>
+                </Select>
+                {filterRole !== 'all' && (
+                  <Button variant="ghost" size="sm" onClick={() => setFilterRole('all')}>
+                    <X className="h-4 w-4 mr-1" /> Limpiar
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          )}
         </Card>
 
         {/* Table */}

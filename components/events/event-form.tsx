@@ -18,7 +18,8 @@ import {
 } from '@/components/ui/select';
 import type { Event, CreateEventDto, EventTitle } from '@/types/events';
 import { EVENT_TYPE_LABELS } from '@/types/events';
-import { AlertCircle, AlertTriangle, Loader2, Search } from 'lucide-react';
+import type { Requirement } from '@/types/requirements';
+import { AlertCircle, AlertTriangle, Loader2, Search, ClipboardList } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
@@ -28,9 +29,10 @@ import type { Feature, FeatureCollection, Polygon, MultiPolygon } from 'geojson'
 interface EventFormProps {
   event?: Event;
   mode: 'create' | 'edit';
+  requirementId?: string;
 }
 
-export function EventForm({ event, mode }: EventFormProps) {
+export function EventForm({ event, mode, requirementId }: EventFormProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -98,6 +100,19 @@ export function EventForm({ event, mode }: EventFormProps) {
       if (!response.ok) throw new Error('Failed to fetch event titles');
       return response.json() as Promise<EventTitle[]>;
     },
+  });
+
+  // Fetch requirement if this event is a response to one
+  const { data: requirement } = useQuery({
+    queryKey: ['requirement', requirementId],
+    queryFn: async () => {
+      const response = await fetch(`/api/requirements/${requirementId}`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch requirement');
+      return response.json() as Promise<Requirement>;
+    },
+    enabled: !!requirementId,
   });
 
   // Filter cities based on user role
@@ -197,7 +212,11 @@ export function EventForm({ event, mode }: EventFormProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
       toast.success('Evento creado exitosamente');
-      router.push('/dashboard/super-admin/events');
+      if (requirementId) {
+        router.push('/dashboard/user/requirements');
+      } else {
+        router.push('/dashboard/super-admin/events');
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Error al crear el evento');
@@ -292,10 +311,11 @@ export function EventForm({ event, mode }: EventFormProps) {
       latitude: parsed.latitude,
       longitude: parsed.longitude,
       isCustomTitle: false,
-      eventTitleId: selectedTitleId,
+      eventTitleId: selectedTitleId || undefined,
       ...(selectedLocalityId ? { localityId: selectedLocalityId } : {}),
       relatedIncidentExcerpt: formData.relatedIncidentExcerpt || undefined,
       nearestPoliceStation: formData.nearestPoliceStation || undefined,
+      ...(requirementId ? { requirementId, title: requirement?.title ?? formData.title } : {}),
     };
     if (mode === 'create') {
       createMutation.mutate(submitData);
@@ -334,52 +354,64 @@ export function EventForm({ event, mode }: EventFormProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="title">Título *</Label>
-            <Select
-              value={selectedTitleId}
-              onValueChange={(value) => {
-                setTitleSearch('');
-                setSelectedTitleId(value);
-                const selected = eventTitles.find((t) => t.id === value);
-                if (selected) {
-                  setFormData({ ...formData, title: selected.name });
-                }
-              }}
-              disabled={isLevel4WithoutCities}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar título..." />
-              </SelectTrigger>
-              <SelectContent className="max-h-[340px]">
-                <div className="sticky top-0 bg-popover px-2 pb-2 pt-1">
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Buscar título..."
-                      value={titleSearch}
-                      onChange={(e) => setTitleSearch(e.target.value)}
-                      onKeyDown={(e) => e.stopPropagation()}
-                      className="pl-8 h-8 text-sm"
-                      autoComplete="off"
-                    />
+          {requirementId ? (
+            <div className="flex items-start gap-3 rounded-md border border-primary/30 bg-primary/5 px-4 py-3">
+              <ClipboardList className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-primary">Evento en respuesta a requerimiento</p>
+                <p className="text-sm text-muted-foreground mt-0.5 break-words">
+                  {requirement ? `"${requirement.title}"` : 'Cargando requerimiento...'}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="title">Título *</Label>
+              <Select
+                value={selectedTitleId}
+                onValueChange={(value) => {
+                  setTitleSearch('');
+                  setSelectedTitleId(value);
+                  const selected = eventTitles.find((t) => t.id === value);
+                  if (selected) {
+                    setFormData({ ...formData, title: selected.name });
+                  }
+                }}
+                disabled={isLevel4WithoutCities}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar título..." />
+                </SelectTrigger>
+                <SelectContent className="max-h-[340px]">
+                  <div className="sticky top-0 bg-popover px-2 pb-2 pt-1">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar título..."
+                        value={titleSearch}
+                        onChange={(e) => setTitleSearch(e.target.value)}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        className="pl-8 h-8 text-sm"
+                        autoComplete="off"
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="overflow-y-auto max-h-[220px]">
-                  {eventTitles
-                    .filter((t) => t.name.toLowerCase().includes(titleSearch.toLowerCase()))
-                    .map((title) => (
-                      <SelectItem key={title.id} value={title.id}>
-                        {title.name}
-                      </SelectItem>
-                    ))}
-                  {eventTitles.filter((t) => t.name.toLowerCase().includes(titleSearch.toLowerCase())).length === 0 && (
-                    <p className="py-4 text-center text-sm text-muted-foreground">Sin resultados</p>
-                  )}
-                </div>
-              </SelectContent>
-            </Select>
-          </div>
+                  <div className="overflow-y-auto max-h-[220px]">
+                    {eventTitles
+                      .filter((t) => t.name.toLowerCase().includes(titleSearch.toLowerCase()))
+                      .map((title) => (
+                        <SelectItem key={title.id} value={title.id}>
+                          {title.name}
+                        </SelectItem>
+                      ))}
+                    {eventTitles.filter((t) => t.name.toLowerCase().includes(titleSearch.toLowerCase())).length === 0 && (
+                      <p className="py-4 text-center text-sm text-muted-foreground">Sin resultados</p>
+                    )}
+                  </div>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="description">Descripción *</Label>

@@ -41,6 +41,7 @@ export function Sidebar({ onClose, onLogout, collapsed = false, onToggleCollapse
   });
 
   const canModerate = session?.user.role && ['level_1', 'level_2', 'level_3'].includes(session.user.role);
+  const isLevel4 = session?.user.role === 'level_4';
 
   const { data: pendingData } = useQuery({
     queryKey: ['events', 'pending-count'],
@@ -66,6 +67,19 @@ export function Sidebar({ onClose, onLogout, collapsed = false, onToggleCollapse
     },
     refetchInterval: 30000,
     enabled: !!canModerate,
+  });
+
+  const { data: pendingRequirementsData } = useQuery({
+    queryKey: ['requirements', 'pending-count'],
+    queryFn: async () => {
+      const response = await fetch('/api/requirements/my/pending-count', {
+        credentials: 'include',
+      });
+      if (!response.ok) return { count: 0 };
+      return response.json() as Promise<{ count: number }>;
+    },
+    refetchInterval: 60000,
+    enabled: !!isLevel4,
   });
 
   if (!session) {
@@ -194,6 +208,14 @@ export function Sidebar({ onClose, onLogout, collapsed = false, onToggleCollapse
                           collapsed ? 'absolute -top-1 -right-1 h-4 min-w-4 text-[9px] px-1' : 'h-5 min-w-5 text-[10px] px-1.5'
                         )}>
                           {pendingUpdatesData.count > 99 ? '99+' : pendingUpdatesData.count}
+                        </span>
+                      )}
+                      {item.badge === 'pending-requirements' && pendingRequirementsData && pendingRequirementsData.count > 0 && (
+                        <span className={cn(
+                          'flex items-center justify-center rounded-full bg-blue-500 font-bold text-white',
+                          collapsed ? 'absolute -top-1 -right-1 h-4 min-w-4 text-[9px] px-1' : 'h-5 min-w-5 text-[10px] px-1.5'
+                        )}>
+                          {pendingRequirementsData.count > 99 ? '99+' : pendingRequirementsData.count}
                         </span>
                       )}
                     </>

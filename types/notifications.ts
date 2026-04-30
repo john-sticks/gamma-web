@@ -1,7 +1,10 @@
 export type NotificationType =
   | 'cancellation_request'
   | 'cancellation_approved'
-  | 'cancellation_rejected';
+  | 'cancellation_rejected'
+  | 'requirement_created'
+  | 'requirement_responded'
+  | 'requirement_voided';
 
 export type NotificationStatus = 'unread' | 'read' | 'resolved' | 'rejected';
 
@@ -26,6 +29,12 @@ export interface Notification {
     title: string;
     eventDate: string;
   } | null;
+  requirementId: string | null;
+  requirement: {
+    id: string;
+    title: string;
+    deadline: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -34,6 +43,9 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   cancellation_request: 'Solicitud de Cancelación',
   cancellation_approved: 'Cancelación Aprobada',
   cancellation_rejected: 'Cancelación Rechazada',
+  requirement_created: 'Nuevo Requerimiento',
+  requirement_responded: 'Respuesta a Requerimiento',
+  requirement_voided: 'Requerimiento Dejado Sin Efecto',
 };
 
 export const NOTIFICATION_STATUS_LABELS: Record<NotificationStatus, string> = {

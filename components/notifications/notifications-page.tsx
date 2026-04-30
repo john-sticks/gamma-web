@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { CheckCheck, Check, X, Eye } from 'lucide-react';
+import { CheckCheck, Check, X, Eye, Filter } from 'lucide-react';
 import { useSession } from '@/hooks/use-session-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -54,6 +54,7 @@ export function NotificationsPage() {
   const [limit] = useState(10);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterType, setFilterType] = useState<string>('all');
+  const [showFilters, setShowFilters] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -199,37 +200,59 @@ export function NotificationsPage() {
 
         {/* Filters */}
         <Card>
-          <CardHeader>
-            <CardTitle>Filtros</CardTitle>
-            <CardDescription>Filtra tus notificaciones</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-4 flex-wrap">
-              <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v); setPage(1); }}>
-                <SelectTrigger className="w-50">
-                  <SelectValue placeholder="Estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  <SelectItem value="unread">No leídas</SelectItem>
-                  <SelectItem value="read">Leídas</SelectItem>
-                  <SelectItem value="resolved">Resueltas</SelectItem>
-                  <SelectItem value="rejected">Rechazadas</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={filterType} onValueChange={(v) => { setFilterType(v); setPage(1); }}>
-                <SelectTrigger className="w-50">
-                  <SelectValue placeholder="Tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los tipos</SelectItem>
-                  <SelectItem value="cancellation_request">Solicitud de Cancelación</SelectItem>
-                  <SelectItem value="cancellation_approved">Cancelación Aprobada</SelectItem>
-                  <SelectItem value="cancellation_rejected">Cancelación Rechazada</SelectItem>
-                </SelectContent>
-              </Select>
+          <CardHeader className="pb-3">
+            <div className="flex items-center">
+              <Button
+                variant={showFilters ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setShowFilters(!showFilters)}
+                className="relative"
+              >
+                <Filter className="h-4 w-4" />
+                {(filterStatus !== 'all' || filterType !== 'all') && (
+                  <Badge className="absolute -top-1.5 -right-1.5 h-4 w-4 p-0 flex items-center justify-center text-[9px]">
+                    {[filterStatus !== 'all', filterType !== 'all'].filter(Boolean).length}
+                  </Badge>
+                )}
+              </Button>
             </div>
-          </CardContent>
+          </CardHeader>
+          {showFilters && (
+            <CardContent className="pt-0 border-t">
+              <div className="flex gap-3 flex-wrap pt-4">
+                <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v); setPage(1); }}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    <SelectItem value="unread">No leídas</SelectItem>
+                    <SelectItem value="read">Leídas</SelectItem>
+                    <SelectItem value="resolved">Resueltas</SelectItem>
+                    <SelectItem value="rejected">Rechazadas</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={filterType} onValueChange={(v) => { setFilterType(v); setPage(1); }}>
+                  <SelectTrigger className="w-[220px]">
+                    <SelectValue placeholder="Tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los tipos</SelectItem>
+                    <SelectItem value="requirement_created">Nuevo Requerimiento</SelectItem>
+                    <SelectItem value="requirement_voided">Requerimiento Dejado Sin Efecto</SelectItem>
+                    <SelectItem value="cancellation_request">Solicitud de Cancelación</SelectItem>
+                    <SelectItem value="cancellation_approved">Cancelación Aprobada</SelectItem>
+                    <SelectItem value="cancellation_rejected">Cancelación Rechazada</SelectItem>
+                  </SelectContent>
+                </Select>
+                {(filterStatus !== 'all' || filterType !== 'all') && (
+                  <Button variant="ghost" size="sm" onClick={() => { setFilterStatus('all'); setFilterType('all'); setPage(1); }}>
+                    <X className="h-4 w-4 mr-1" /> Limpiar
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          )}
         </Card>
 
         {/* Table */}

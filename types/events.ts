@@ -112,6 +112,7 @@ export interface Event {
 
 // Evento enriquecido con la última actualización
 export interface EventWithLatestUpdate extends Event {
+  maxAttendeeCount?: number | null;
   latestUpdate: {
     id: string;
     updateTime: string;
