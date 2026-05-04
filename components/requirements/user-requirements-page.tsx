@@ -73,13 +73,24 @@ export function UserRequirementsPage() {
     queryFn: async () => {
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '10',
+        limit: '100',
         ...(filterStatus !== 'all' && { status: filterStatus }),
       });
       const response = await fetch(`/api/requirements/my?${params}`, { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch requirements');
       return response.json() as Promise<PaginatedResponse<RequirementWithMyResponse>>;
     },
+  });
+
+  const STATUS_ORDER: Record<string, number> = { active: 0, expired: 1, closed: 2, voided: 2 };
+
+  const sortedRequirements = [...(requirementsResponse?.data ?? [])].sort((a, b) => {
+    const groupDiff = (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3);
+    if (groupDiff !== 0) return groupDiff;
+    const dateA = new Date(a.deadline).getTime();
+    const dateB = new Date(b.deadline).getTime();
+    // active: ASC (más urgente primero); expired/closed: DESC (más reciente primero)
+    return a.status === 'active' ? dateA - dateB : dateB - dateA;
   });
 
   const respondMutation = useMutation({
@@ -168,10 +179,9 @@ export function UserRequirementsPage() {
 
   function canAmend(req: RequirementWithMyResponse) {
     const overdue = isOverdue(req.deadline);
-    return (
-      req.myResponse?.type === 'negative' &&
-      (req.status === 'expired' || (req.status === 'active' && overdue))
-    );
+    const isExpiredOrOverdue = req.status === 'expired' || (req.status === 'active' && overdue);
+    // Allow amend if expired and has no response OR has a negative response
+    return isExpiredOrOverdue && (!req.myResponse || req.myResponse.type === 'negative');
   }
 
   return (
@@ -254,7 +264,7 @@ export function UserRequirementsPage() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      requirementsResponse?.data.map((req) => (
+                      sortedRequirements.map((req) => (
                         <TableRow
                           key={req.id}
                           className={canRespond(req) ? 'bg-primary/5' : ''}

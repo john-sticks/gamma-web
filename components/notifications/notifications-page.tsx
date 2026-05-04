@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { CheckCheck, Check, X, Eye, Filter } from 'lucide-react';
+import { CheckCheck, Check, X, Eye, Filter, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
 import { useSession } from '@/hooks/use-session-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -62,6 +62,7 @@ export function NotificationsPage() {
     action: 'approve' | 'reject';
     notification: Notification | null;
   }>({ open: false, action: 'approve', notification: null });
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   // Fetch notifications
   const { data: notificationsResponse, isLoading } = useQuery({
@@ -273,9 +274,9 @@ export function NotificationsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-8" />
                       <TableHead>Tipo</TableHead>
-                      <TableHead>Mensaje</TableHead>
-                      <TableHead>Evento</TableHead>
+                      <TableHead>Evento / Requerimiento</TableHead>
                       <TableHead>De</TableHead>
                       <TableHead>Fecha</TableHead>
                       <TableHead>Estado</TableHead>
@@ -291,83 +292,129 @@ export function NotificationsPage() {
                       </TableRow>
                     ) : (
                       notificationsResponse?.data.map((notification) => (
-                        <TableRow
-                          key={notification.id}
-                          className={notification.status === 'unread' ? 'bg-primary/5' : ''}
-                        >
-                          <TableCell>
-                            <Badge variant={getTypeBadgeVariant(notification.type)} className='w-fit whitespace-nowrap'>
-                              {NOTIFICATION_TYPE_LABELS[notification.type]}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="max-w-72 truncate">
-                            {notification.message}
-                          </TableCell>
-                          <TableCell>
-                            {notification.event?.title || '—'}
-                          </TableCell>
-                          <TableCell>
-                            {notification.sender.firstName} {notification.sender.lastName}
-                          </TableCell>
-                          <TableCell>
-                            {new Date(notification.createdAt).toLocaleDateString('es-AR')}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={getStatusBadgeVariant(notification.status)}>
-                              {NOTIFICATION_STATUS_LABELS[notification.status]}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
+                        <React.Fragment key={notification.id}>
+                          <TableRow
+                            className={notification.status === 'unread' ? 'bg-primary/5' : ''}
+                          >
+                            {/* Expand toggle */}
+                            <TableCell className="pr-0">
                               <Button
-                                variant="outline"
+                                variant="ghost"
                                 size="icon"
-                                onClick={() => {
-                                  setSelectedNotification(notification);
-                                  setViewDialogOpen(true);
-                                  if (notification.status === 'unread') {
-                                    markAsReadMutation.mutate(notification.id);
-                                  }
-                                }}
-                                className="hover:cursor-pointer"
+                                className="h-7 w-7 text-muted-foreground hover:cursor-pointer"
+                                onClick={() => setExpandedRow(expandedRow === notification.id ? null : notification.id)}
                               >
-                                <Eye className="h-4 w-4" />
+                                {expandedRow === notification.id
+                                  ? <ChevronUp className="h-4 w-4" />
+                                  : <ChevronDown className="h-4 w-4" />}
                               </Button>
-                              {isActionable(notification) && (
-                                <>
-                                  <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="text-green-600 hover:bg-green-400 hover:cursor-pointer"
-                                    onClick={() =>
-                                      setConfirmDialog({
-                                        open: true,
-                                        action: 'approve',
-                                        notification,
-                                      })
-                                    }
-                                  >
-                                    <Check className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="text-red-600 hover:bg-red-400 hover:cursor-pointer"
-                                    onClick={() =>
-                                      setConfirmDialog({
-                                        open: true,
-                                        action: 'reject',
-                                        notification,
-                                      })
-                                    }
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={getTypeBadgeVariant(notification.type)} className='w-fit whitespace-nowrap'>
+                                {NOTIFICATION_TYPE_LABELS[notification.type]}
+                              </Badge>
+                            </TableCell>
+                            {/* Evento / Requerimiento */}
+                            <TableCell>
+                              {notification.requirement ? (
+                                <div className="space-y-0.5">
+                                  <p className="text-xs text-muted-foreground">Requerimiento</p>
+                                  <p className="text-sm font-medium leading-tight">{notification.requirement.title}</p>
+                                  {notification.requirement.deadline && (
+                                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                      <Calendar className="h-3 w-3" />
+                                      Vence: {new Date(notification.requirement.deadline).toLocaleDateString('es-AR')}
+                                    </p>
+                                  )}
+                                </div>
+                              ) : notification.event ? (
+                                <div className="space-y-0.5">
+                                  <p className="text-xs text-muted-foreground">Evento</p>
+                                  <p className="text-sm font-medium leading-tight">{notification.event.title}</p>
+                                  {notification.event.eventDate && (
+                                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                      <Calendar className="h-3 w-3" />
+                                      {new Date(notification.event.eventDate).toLocaleDateString('es-AR')}
+                                    </p>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
                               )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
+                            </TableCell>
+                            <TableCell>
+                              {notification.sender.firstName} {notification.sender.lastName}
+                            </TableCell>
+                            <TableCell>
+                              {new Date(notification.createdAt).toLocaleDateString('es-AR')}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={getStatusBadgeVariant(notification.status)}>
+                                {NOTIFICATION_STATUS_LABELS[notification.status]}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => {
+                                    setSelectedNotification(notification);
+                                    setViewDialogOpen(true);
+                                    if (notification.status === 'unread') {
+                                      markAsReadMutation.mutate(notification.id);
+                                    }
+                                  }}
+                                  className="hover:cursor-pointer"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                {isActionable(notification) && (
+                                  <>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="text-green-600 hover:bg-green-400 hover:cursor-pointer"
+                                      onClick={() =>
+                                        setConfirmDialog({ open: true, action: 'approve', notification })
+                                      }
+                                    >
+                                      <Check className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="text-red-600 hover:bg-red-400 hover:cursor-pointer"
+                                      onClick={() =>
+                                        setConfirmDialog({ open: true, action: 'reject', notification })
+                                      }
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                          {/* Expanded message row */}
+                          {expandedRow === notification.id && (
+                            <TableRow className="bg-muted/30 hover:bg-muted/30">
+                              <TableCell />
+                              <TableCell colSpan={6} className="py-3 pb-4 space-y-3">
+                                <div>
+                                  <p className="text-xs font-medium text-muted-foreground mb-1">Mensaje</p>
+                                  <p className="text-sm leading-relaxed">{notification.message}</p>
+                                </div>
+                                {notification.requirement?.description && (
+                                  <div>
+                                    <p className="text-xs font-medium text-muted-foreground mb-1">Descripción del requerimiento</p>
+                                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{notification.requirement.description}</p>
+                                  </div>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </React.Fragment>
                       ))
                     )}
                   </TableBody>
@@ -400,43 +447,66 @@ export function NotificationsPage() {
             </DialogDescription>
           </DialogHeader>
           {selectedNotification && (
+            <div className="max-h-[60vh] overflow-y-auto pr-1">
             <div className="space-y-4">
-              <div>
-                <h4 className="font-semibold mb-1">Mensaje</h4>
-                <p className="text-sm text-muted-foreground">{selectedNotification.message}</p>
+              {/* Message body — prominent */}
+              <div className="rounded-lg bg-muted/50 border p-4">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Mensaje</p>
+                <p className="text-sm leading-relaxed">{selectedNotification.message}</p>
               </div>
+
+              {/* Event or Requirement details */}
+              {selectedNotification.requirement && (
+                <div className="rounded-lg border p-4 space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Requerimiento</p>
+                  <p className="text-sm font-semibold">{selectedNotification.requirement.title}</p>
+                  {selectedNotification.requirement.description && (
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground">{selectedNotification.requirement.description}</p>
+                  )}
+                  {selectedNotification.requirement.deadline && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <Calendar className="h-3.5 w-3.5" />
+                      Vence: {new Date(selectedNotification.requirement.deadline).toLocaleDateString('es-AR')}
+                    </p>
+                  )}
+                </div>
+              )}
+              {selectedNotification.event && (
+                <div className="rounded-lg border p-4 space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Evento asociado</p>
+                  <p className="text-sm font-semibold">{selectedNotification.event.title}</p>
+                  {selectedNotification.event.eventDate && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <Calendar className="h-3.5 w-3.5" />
+                      {new Date(selectedNotification.event.eventDate).toLocaleDateString('es-AR')}
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h4 className="font-semibold mb-1">Tipo</h4>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Tipo</p>
                   <Badge variant={getTypeBadgeVariant(selectedNotification.type)}>
                     {NOTIFICATION_TYPE_LABELS[selectedNotification.type]}
                   </Badge>
                 </div>
                 <div>
-                  <h4 className="font-semibold mb-1">Estado</h4>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Estado</p>
                   <Badge variant={getStatusBadgeVariant(selectedNotification.status)}>
                     {NOTIFICATION_STATUS_LABELS[selectedNotification.status]}
                   </Badge>
                 </div>
                 <div>
-                  <h4 className="font-semibold mb-1">Fecha</h4>
-                  <p className="text-sm">
-                    {new Date(selectedNotification.createdAt).toLocaleString('es-AR')}
-                  </p>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Enviado por</p>
+                  <p className="text-sm">{selectedNotification.sender.firstName} {selectedNotification.sender.lastName} <span className="text-muted-foreground">(@{selectedNotification.sender.username})</span></p>
                 </div>
-                {selectedNotification.event && (
-                  <div>
-                    <h4 className="font-semibold mb-1">Evento</h4>
-                    <p className="text-sm">{selectedNotification.event.title}</p>
-                  </div>
-                )}
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Fecha</p>
+                  <p className="text-sm">{new Date(selectedNotification.createdAt).toLocaleString('es-AR')}</p>
+                </div>
               </div>
-              <div>
-                <h4 className="font-semibold mb-1">Enviado por</h4>
-                <p className="text-sm">
-                  {selectedNotification.sender.firstName} {selectedNotification.sender.lastName} (@{selectedNotification.sender.username})
-                </p>
-              </div>
+            </div>
             </div>
           )}
           <DialogFooter>

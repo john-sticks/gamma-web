@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Pencil, Trash2, MapPin, Eye, LayoutGrid, List, Presentation, Check, X, Filter, ChevronDown, Users, Clock, FileText } from 'lucide-react';
+import { useSession } from '@/hooks/use-session-query';
+import { Plus, Search, Pencil, Trash2, MapPin, Eye, LayoutGrid, List, Presentation, Check, X, Filter, ChevronDown, Users, Clock, FileText, FileType, Loader2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -40,7 +40,6 @@ import type { City, Locality } from '@/types/city';
 import { EVENT_TYPE_LABELS, EVENT_STATUS_LABELS, EVENT_LIFECYCLE_STATUS_LABELS, UPDATE_TYPE_LABELS } from '@/types/events';
 import Link from 'next/link';
 import { WhatsAppShareButton } from '@/components/events/whatsapp-share-button';
-import { ExportButtons } from '@/components/events/export-buttons';
 
 interface PaginatedResponse<T> {
   data: T[];
@@ -58,9 +57,11 @@ interface EventsManagementProps {
   basePath: string; // e.g., '/dashboard/admin' or '/dashboard/super-admin'
   defaultFilterStatus?: string; // Default status filter (e.g., 'approved', 'pending', 'all')
   readonly?: boolean; // Hide create/edit/delete actions
+  showRetroExport?: boolean; // Show retrospective export section
 }
 
-export function EventsManagement({ basePath, defaultFilterStatus = 'all', readonly = false }: EventsManagementProps) {
+export function EventsManagement({ basePath, defaultFilterStatus = 'all', readonly = false, showRetroExport = true }: EventsManagementProps) {
+  const { data: session } = useSession();
   const queryClient = useQueryClient();
   const cityDropdownRef = useRef<HTMLDivElement>(null);
   const [expandedTitles, setExpandedTitles] = useState<Set<string>>(new Set());
@@ -89,6 +90,7 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
   const [cancellationDialogOpen, setCancellationDialogOpen] = useState(false);
   const [cancellationEventId, setCancellationEventId] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [isExportingDocx, setIsExportingDocx] = useState(false);
 
   // Debounce search term
   useEffect(() => {
@@ -102,13 +104,11 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
 
   // Reset page when filters change
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset pagination on filter change
     setPage(1);
   }, [filterType, filterStatus, filterLifecycleStatus, filterCity, filterLocality, dateFrom, dateTo]);
 
   // Reset locality when cities change
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFilterLocality('all');
   }, [filterCity]);
 
@@ -127,17 +127,31 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
   }, []);
 
   // Fetch cities
-  const { data: cities = [] } = useQuery({
+  const isLevel4 = session?.user.role === 'level_4';
+
+  const { data: allCities = [] } = useQuery({
     queryKey: ['cities'],
     queryFn: async () => {
-      const response = await fetch('/api/cities', {
-        method: 'GET',
-        credentials: 'include',
-      });
+      const response = await fetch('/api/cities', { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch cities');
       return response.json() as Promise<City[]>;
     },
+    enabled: !isLevel4,
   });
+
+  const { data: userProfile } = useQuery({
+    queryKey: ['user-profile', session?.user.id],
+    queryFn: async () => {
+      const response = await fetch(`/api/users/${session!.user.id}`, { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch user');
+      return response.json() as Promise<{ assignedCities: City[] }>;
+    },
+    enabled: isLevel4 && !!session?.user.id,
+  });
+
+  const cities: City[] = isLevel4
+    ? (userProfile?.assignedCities ?? [])
+    : allCities;
 
   // Fetch localities for selected cities
   const { data: localities = [] } = useQuery({
@@ -373,6 +387,42 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
 
   console.log("metrics", metrics, "error:", metricsError, "loading:", metricsLoading);
 
+  async function handleDocxExport() {
+    setIsExportingDocx(true);
+    try {
+      const params = new URLSearchParams();
+      if (dateFrom) params.append('dateFrom', dateFrom);
+      if (dateTo) params.append('dateTo', dateTo);
+      if (filterType !== 'all') params.append('eventType', filterType);
+      if (filterStatus !== 'all') params.append('status', filterStatus);
+      if (filterLifecycleStatus !== 'all') params.append('lifecycleStatus', filterLifecycleStatus);
+      if (filterCity.length > 0) params.append('city', filterCity.join(','));
+      if (filterLocality !== 'all') params.append('locality', filterLocality);
+
+      const response = await fetch(`/api/events/export/docx?${params.toString()}`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Export failed');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const suffix = dateFrom && dateTo
+        ? `${dateFrom}_${dateTo}`
+        : new Date().toISOString().slice(0, 10);
+      a.download = `retrospectiva-${suffix}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch {
+      // handled silently; toast not imported here, user sees button re-enable
+    } finally {
+      setIsExportingDocx(false);
+    }
+  }
+
   return (
     <div className="p-3 sm:p-6">
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
@@ -385,18 +435,6 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <ExportButtons
-              filters={{
-                ...(filterType !== 'all' ? { eventType: filterType } : {}),
-                ...(filterStatus !== 'all' ? { status: filterStatus } : {}),
-                ...(filterLifecycleStatus !== 'all' ? { lifecycleStatus: filterLifecycleStatus } : {}),
-                ...(filterCity.length > 0 ? { city: filterCity } : {}),
-                ...(filterLocality !== 'all' ? { locality: filterLocality } : {}),
-                ...(dateFrom ? { dateFrom } : {}),
-                ...(dateTo ? { dateTo } : {}),
-                ...(debouncedSearch ? { search: debouncedSearch } : {}),
-              }}
-            />
             <Button asChild variant="outline" size="sm" className="flex-1 sm:flex-none">
               <Link href={`${basePath}/events/presentation`}>
                 <Presentation className="mr-2 h-4 w-4" />
@@ -665,39 +703,77 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
                 </div>
               )}
 
-              {/* Date Filters */}
-              <div className="flex gap-4 flex-wrap items-end">
-                <div className="flex-1 min-w-[200px]">
-                  <Label htmlFor="dateFrom" className="text-sm">Desde</Label>
-                  <Input
-                    id="dateFrom"
-                    type="date"
-                    value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    className="mt-1.5"
-                  />
+              {/* Date Filters + Retrospective Export */}
+              <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                {/* Date range */}
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Rango de fechas</p>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="dateFrom"
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      className="w-[160px]"
+                    />
+                    <span className="text-muted-foreground text-sm select-none">—</span>
+                    <Input
+                      id="dateTo"
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      className="w-[160px]"
+                    />
+                    {(dateFrom || dateTo) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => { setDateFrom(''); setDateTo(''); }}
+                        className="text-muted-foreground hover:text-destructive px-2 h-9"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex-1 min-w-[200px]">
-                  <Label htmlFor="dateTo" className="text-sm">Hasta</Label>
-                  <Input
-                    id="dateTo"
-                    type="date"
-                    value={dateTo}
-                    onChange={(e) => setDateTo(e.target.value)}
-                    className="mt-1.5"
-                  />
-                </div>
-                {(dateFrom || dateTo) && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setDateFrom('');
-                      setDateTo('');
-                    }}
-                  >
-                    Limpiar fechas
-                  </Button>
+
+                {showRetroExport && (
+                  <>
+                    {/* Divider */}
+                    <div className="border-t" />
+
+                    {/* Retrospective export */}
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+                        <FileType className="h-3.5 w-3.5" />
+                        Exportar retrospectiva
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <Button
+                          onClick={handleDocxExport}
+                          disabled={isExportingDocx || !dateFrom || !dateTo}
+                          size="sm"
+                          className="hover:cursor-pointer gap-2"
+                        >
+                          {isExportingDocx ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <FileType className="h-4 w-4" />
+                          )}
+                          {isExportingDocx ? 'Generando...' : 'Descargar .docx'}
+                        </Button>
+                        {(!dateFrom || !dateTo) && (
+                          <p className="text-xs text-muted-foreground">
+                            {!dateFrom && !dateTo
+                              ? 'Seleccioná un rango de fechas para exportar'
+                              : !dateFrom
+                              ? 'Falta la fecha de inicio'
+                              : 'Falta la fecha de fin'}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             </CardContent>
@@ -749,8 +825,8 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
                       view: true,
                       edit: !readonly,
                       delete: !readonly,
-                      approve: !readonly && event.status === 'pending',
-                      reject: !readonly && event.status === 'pending',
+                      approve: !readonly && !isLevel4 && event.status === 'pending',
+                      reject: !readonly && !isLevel4 && event.status === 'pending',
                     }}
                   />
                 ))}
@@ -920,7 +996,7 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          {event.status === 'pending' && (
+                          {!isLevel4 && event.status === 'pending' && (
                             <>
                               <Button
                                 variant="outline"
@@ -947,6 +1023,13 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
                             </>
                           )}
                           <WhatsAppShareButton event={event} latestUpdate={(event as EventWithLatestUpdate).latestUpdate} />
+                          {isLevel4 && (
+                            <Button variant="outline" size="icon" asChild className='hover:cursor-pointer' title="Cargar actualización">
+                              <Link href={`${basePath}/events/${event.id}`}>
+                                <Plus className="h-4 w-4" />
+                              </Link>
+                            </Button>
+                          )}
                           <Button
                             variant="outline"
                             size="icon"
@@ -1182,6 +1265,13 @@ export function EventsManagement({ basePath, defaultFilterStatus = 'all', readon
             {/* {selectedEvent && (
               <ExportButtons eventId={selectedEvent.id} />
             )} */}
+            {isLevel4 && selectedEvent && (
+              <Button asChild>
+                <Link href={`${basePath}/events/${selectedEvent.id}`} onClick={() => setViewDialogOpen(false)}>
+                  Cargar actualización
+                </Link>
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
               Cerrar
             </Button>

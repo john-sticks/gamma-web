@@ -137,12 +137,12 @@ export type CreateEventDto = {
      * Número estimado de asistentes
      */
     attendeeCount?: number;
-    localityId?: string;
-    eventTitleId?: string;
-    isCustomTitle?: boolean;
     relatedIncidentExcerpt?: string;
     nearestPoliceStation?: string;
+    localityId?: string;
     requirementId?: string;
+    eventTitleId?: string;
+    isCustomTitle?: boolean;
 };
 
 export type UpdateEventDto = {
@@ -186,6 +186,13 @@ export type UpdateEventDto = {
      * Estado del evento (solo admin/moderador pueden cambiar)
      */
     status?: 'pending' | 'approved' | 'rejected' | 'ongoing' | 'completed' | 'cancelled';
+    relatedIncidentExcerpt?: string;
+    nearestPoliceStation?: string;
+    localityId?: string;
+    requirementId?: string;
+    eventTitleId?: string;
+    isCustomTitle?: boolean;
+    lifecycleStatus?: string;
 };
 
 export type CreateEventUpdateDto = {

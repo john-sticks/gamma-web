@@ -33,6 +33,7 @@ export interface Notification {
   requirement: {
     id: string;
     title: string;
+    description: string;
     deadline: string;
   } | null;
   createdAt: string;

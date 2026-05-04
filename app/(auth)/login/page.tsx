@@ -57,6 +57,8 @@ export default function LoginPage() {
         // Esperar a que la sesión se guarde en la cookie
         await saveSession(session);
         queryClient.setQueryData(SESSION_QUERY_KEY, session);
+        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        queryClient.invalidateQueries({ queryKey: ['requirements-pending-count'] });
 
         // Redirigir al dashboard según el rol
         const dashboardRoute = getDashboardRoute(authResponse.user.role);
